@@ -17,9 +17,9 @@ BUILD
 cat > src/main.c <<'SRC'
 int main(void) { return 0; }
 SRC
-"$C_BIN" build >/dev/null
-"$C_BIN" build --release >/dev/null
+"$C_BIN" build >/dev/null 2>&1
+"$C_BIN" build --release >/dev/null 2>&1
 [ -x build/debug/profile ]
 [ -x build/release/profile ]
-"$C_BIN" build | grep -q CACHED
+"$C_BIN" build 2>&1 | grep -q 'cached'
 echo "profiles: ok"

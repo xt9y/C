@@ -186,7 +186,6 @@ static int cli_run_segment(int argc, char **argv) {
     FILE *stream = fdopen(fds[0], "r");
     if (!stream) {
         close(fds[0]);
-        kill(pid, SIGTERM);
         waitpid(pid, NULL, 0);
         return 1;
     }

@@ -1,0 +1,5 @@
+[[dependency]]
+name = "raylib"
+url = "https://github.com/raysan5/raylib.git"
+requested = "5.5"
+resolved = "c1ab645ca298a2801097931d1079b10ff7eb9df8"

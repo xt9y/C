@@ -88,15 +88,9 @@ c_dep_cmake(raylib);
 c_dep_link(raylib, "raylib");
 c_dep_cmake_option(raylib, "-DBUILD_EXAMPLES=OFF");
 c_use(app, raylib);
-
-#ifdef __APPLE__
-c_framework(app, "Cocoa");
-c_framework(app, "IOKit");
-c_framework(app, "CoreVideo");
-#endif
 ```
 
-`c` keeps one bare Git mirror per repository, checks resolved commits out into the global cache, and stores CMake install artifacts globally as well.
+`c` keeps one bare Git mirror per repository, checks resolved commits out into the global cache, and stores CMake install artifacts globally as well. Libraries can still require platform-specific system libraries/frameworks; see the tested Raylib example in `examples/raylib` for a complete case.
 
 ## Lockfile
 
@@ -162,8 +156,7 @@ The cache is split into reusable Git mirrors, source checkouts, dependency build
 ```sh
 git clone https://github.com/xt9y/C.git
 cd C
-make
-sudo make install
+make && sudo make install
 ```
 
 This installs:
@@ -197,6 +190,20 @@ build.c
 src/main.c
 .gitignore
 ```
+
+## Examples
+
+### Raylib
+
+`examples/raylib` is a complete Git + CMake dependency example. Raylib is fetched from its upstream repository, pinned by `c.lock`, built into the global cache, and linked into a small C application.
+
+```sh
+cd examples/raylib
+c build
+c run
+```
+
+On Linux, Raylib still needs the normal X11/OpenGL/audio development packages from the operating system. See `examples/raylib/README.md` for the tested Debian/Ubuntu package list.
 
 ## Current scope
 

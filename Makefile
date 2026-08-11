@@ -1,0 +1,40 @@
+CC ?= cc
+CFLAGS ?= -std=c11 -O2 -Wall -Wextra -Wpedantic
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+INCLUDEDIR ?= $(PREFIX)/include
+BUILD := build
+TARGET := $(BUILD)/c
+UNAME_S := $(shell uname -s)
+LDLIBS :=
+ifeq ($(UNAME_S),Linux)
+LDLIBS += -ldl
+endif
+
+.PHONY: all clean install uninstall test
+
+all: $(TARGET)
+
+$(TARGET): src/main.c include/cbuild.h
+	mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) -Iinclude -DCBUILD_HEADER_PATH='"$(abspath include/cbuild.h)"' src/main.c $(LDLIBS) -o $(TARGET)
+
+install: $(TARGET)
+	install -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(INCLUDEDIR)
+	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)/c
+	install -m 644 include/cbuild.h $(DESTDIR)$(INCLUDEDIR)/cbuild.h
+
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/c $(DESTDIR)$(INCLUDEDIR)/cbuild.h
+
+clean:
+	rm -rf $(BUILD)
+
+test: $(TARGET)
+	sh tests/smoke.sh $(abspath $(TARGET)) $(abspath include)
+	sh tests/dependency.sh $(abspath $(TARGET)) $(abspath include)
+	sh tests/cmake_dependency.sh $(abspath $(TARGET)) $(abspath include)
+	sh tests/source_dependency.sh $(abspath $(TARGET)) $(abspath include)
+	sh tests/test_command.sh $(abspath $(TARGET)) $(abspath include)
+	sh tests/profiles.sh $(abspath $(TARGET)) $(abspath include)
+	sh tests/install_layout.sh $(abspath .)

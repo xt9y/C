@@ -177,6 +177,7 @@ static int cli_run_segment(int argc, char **argv) {
         close(fds[0]);
         if (dup2(fds[1], STDOUT_FILENO) < 0) _exit(127);
         close(fds[1]);
+        setvbuf(stdout, NULL, _IONBF, 0);
         int rc = c_legacy_main(argc, argv);
         fflush(NULL);
         _exit(rc);

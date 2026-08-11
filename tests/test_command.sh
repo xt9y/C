@@ -17,5 +17,5 @@ BUILD
 cat > tests/unit.c <<'SRC'
 int main(void) { return 0; }
 SRC
-"$C_BIN" test | grep -q 'PASS'
+"$C_BIN" test 2>&1 | grep -q 'pass'
 echo "test-command: ok"

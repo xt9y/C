@@ -22,6 +22,7 @@ $(TARGET): src/cli.c src/main.c src/cache_io.h include/cbuild.h
 install: $(TARGET)
 	install -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(INCLUDEDIR)
 	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)/c
+	rm -f $(DESTDIR)$(INCLUDEDIR)/cbuild.h
 	install -m 644 include/cbuild.h $(DESTDIR)$(INCLUDEDIR)/cbuild.h
 
 uninstall:

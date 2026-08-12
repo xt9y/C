@@ -33,7 +33,7 @@ clean:
 test: $(TARGET)
 	sh tests/smoke.sh $(abspath $(TARGET)) $(abspath include)
 	sh tests/dependency.sh $(abspath $(TARGET)) $(abspath include)
-	sh tests/cmake_dependency.sh $(abspath $(TARGET)) $(abspath include)
+	sh tests/compiler_only.sh $(abspath $(TARGET)) $(abspath include)
 	sh tests/source_dependency.sh $(abspath $(TARGET)) $(abspath include)
 	sh tests/test_command.sh $(abspath $(TARGET)) $(abspath include)
 	sh tests/profiles.sh $(abspath $(TARGET)) $(abspath include)

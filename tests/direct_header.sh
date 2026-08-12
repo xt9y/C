@@ -8,10 +8,15 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 
 CACHE="$TMP/cache"
 PROJECT="$TMP/project"
-mkdir -p "$CACHE/scripts" "$PROJECT/src"
+STALE="$TMP/stale-include"
+mkdir -p "$CACHE/scripts" "$PROJECT/src" "$STALE"
 
 cat > "$CACHE/scripts/cbuild.h" <<'EOF'
 #error stale cached cbuild.h must never be used
+EOF
+
+cat > "$STALE/cbuild.h" <<'EOF'
+#error stale C_INCLUDE_DIR cbuild.h must never override the canonical header
 EOF
 
 cat > "$PROJECT/build.c" <<'EOF'
@@ -28,12 +33,13 @@ int main(void) { return 0; }
 EOF
 
 cd "$PROJECT"
-C_CACHE_DIR="$CACHE" C_INCLUDE_DIR="$INC" "$C_BIN" build >/dev/null
+C_CACHE_DIR="$CACHE" C_INCLUDE_DIR="$STALE" "$C_BIN" build >/dev/null
 
 [ -L "$CACHE/scripts/cbuild.h" ]
 cmp "$INC/cbuild.h" "$CACHE/scripts/cbuild.h"
 
-C_CACHE_DIR="$CACHE" C_INCLUDE_DIR="$INC" "$C_BIN" clean build >/dev/null
+rm -f "$CACHE/scripts/cbuild.h"
+C_CACHE_DIR="$CACHE" C_INCLUDE_DIR="$STALE" "$C_BIN" clean build >/dev/null
 [ -L "$CACHE/scripts/cbuild.h" ]
 cmp "$INC/cbuild.h" "$CACHE/scripts/cbuild.h"
 

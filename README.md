@@ -1,4 +1,4 @@
-# C
+# C - A zig inspired Build system manager
 
 A build system and dependency manager for C.
 

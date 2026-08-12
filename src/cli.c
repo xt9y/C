@@ -11,6 +11,34 @@ static const char *compiler_ar(void) {
     return (ar && *ar) ? ar : "ar";
 }
 
+static bool compiler_cpp_source(const char *path) {
+    const char *ext = strrchr(path, '.');
+    if (!ext) return false;
+    return !strcmp(ext, ".cpp") || !strcmp(ext, ".cc") || !strcmp(ext, ".cxx") || !strcmp(ext, ".mm");
+}
+
+static bool compiler_c_standard_flag(const char *flag) {
+    return !strncmp(flag, "-std=c", 6) && strncmp(flag, "-std=c++", 8);
+}
+
+static bool compiler_cpp_standard_flag(const char *flag) {
+    return !strncmp(flag, "-std=c++", 8) || !strncmp(flag, "-std=gnu++", 10);
+}
+
+static void compiler_push_standard(StrVec *a, const char *source) {
+    vec_push(a, compiler_cpp_source(source) ? "-std=c++17" : "-std=c11");
+}
+
+static void compiler_push_source_flags(StrVec *a, const C_StringList *flags, const char *source) {
+    bool cpp = compiler_cpp_source(source);
+    for (size_t i = 0; i < flags->count; ++i) {
+        const char *flag = flags->items[i];
+        if (cpp && compiler_c_standard_flag(flag)) continue;
+        if (!cpp && compiler_cpp_standard_flag(flag)) continue;
+        vec_push(a, flag);
+    }
+}
+
 static void compiler_dep_root(const C_Dependency *d, const DepState *state, char out[PATH_MAX]) {
     if (d->subdir[0]) path_join(out, state->source, d->subdir);
     else c__copy(out, PATH_MAX, state->source);
@@ -56,7 +84,7 @@ static void compiler_build_dependency(const C_Dependency *d, const Options *opt,
 
         StrVec a = {0};
         vec_push(&a, opt->cc);
-        vec_push(&a, "-std=c11");
+        compiler_push_standard(&a, sources.items[i]);
         vec_push(&a, opt->release ? "-O2" : "-O0");
         if (!opt->release) vec_push(&a, "-g");
 
@@ -69,7 +97,7 @@ static void compiler_build_dependency(const C_Dependency *d, const Options *opt,
             snprintf(arg, sizeof(arg), "-I%s", inc);
             vec_push(&a, arg);
         }
-        for (size_t j = 0; j < d->compile_flags.count; ++j) vec_push(&a, d->compile_flags.items[j]);
+        compiler_push_source_flags(&a, &d->compile_flags, sources.items[i]);
         vec_push(&a, "-c");
         vec_push(&a, sources.items[i]);
         vec_push(&a, "-o");
@@ -144,13 +172,138 @@ static void compiler_resolve_all(C_Build *b, const Options *opt, DepState states
     compiler_prepare_target_links(b, states);
 }
 
+static void compiler_append_target_compile_flags(StrVec *a, const C_Target *t, C_Build *b, DepState states[], const char *source) {
+    for (size_t i = 0; i < t->includes.count; ++i) {
+        char x[PATH_MAX + 3];
+        snprintf(x, sizeof(x), "-I%s", t->includes.items[i]);
+        vec_push(a, x);
+    }
+    for (size_t i = 0; i < t->defines.count; ++i) {
+        char x[PATH_MAX + 3];
+        snprintf(x, sizeof(x), "-D%s", t->defines.items[i]);
+        vec_push(a, x);
+    }
+    compiler_push_source_flags(a, &t->cflags, source);
+    for (size_t i = 0; i < t->dep_count; ++i) {
+        C_Dependency *d = t->deps[i];
+        ptrdiff_t dep_index = d - b->deps;
+        if (dep_index < 0 || (size_t)dep_index >= b->dep_count) die("target %s has invalid dependency", t->name);
+        DepState *s = &states[dep_index];
+        char root[PATH_MAX];
+        if (d->subdir[0]) path_join(root, s->source, d->subdir);
+        else c__copy(root, sizeof(root), s->source);
+        if (d->include_dirs.count == 0) {
+            char x[PATH_MAX + 3];
+            snprintf(x, sizeof(x), "-I%s", root);
+            vec_push(a, x);
+        } else {
+            for (size_t j = 0; j < d->include_dirs.count; ++j) {
+                char inc[PATH_MAX], x[PATH_MAX + 3];
+                path_join(inc, root, d->include_dirs.items[j]);
+                snprintf(x, sizeof(x), "-I%s", inc);
+                vec_push(a, x);
+            }
+        }
+    }
+}
+
+static char *compiler_build_target(C_Build *b, C_Target *t, DepState states[], const Options *opt) {
+    StrVec sources = {0}, objects = {0};
+    expand_sources(t, b, states, &sources);
+    if (sources.count == 0) die("target %s has no sources", t->name);
+    uint64_t sig = target_signature(t, b, states, opt, &sources);
+    char sighex[17]; hash_u64_hex(sig, sighex);
+    char objdir[PATH_MAX]; path_join(objdir, "build/.objs", sighex); mkdir_p(objdir);
+    char cwd[PATH_MAX]; if (!getcwd(cwd, sizeof(cwd))) die("getcwd failed");
+    FILE *db = fopen("compile_commands.json", "w");
+    bool first = true;
+    if (db) fprintf(db, "[\n");
+
+    size_t compiled = 0;
+    for (size_t i = 0; i < sources.count; ++i) {
+        char obj[PATH_MAX], depf[PATH_MAX];
+        object_path(objdir, sources.items[i], obj);
+        if (strlen(obj) + 3 >= sizeof(depf)) die("object path too long: %s", obj);
+        c__copy(depf, sizeof(depf), obj);
+        strcat(depf, ".d");
+        vec_push(&objects, obj);
+
+        StrVec a = {0};
+        vec_push(&a, opt->cc);
+        compiler_push_standard(&a, sources.items[i]);
+        vec_push(&a, opt->release ? "-O2" : "-O0");
+        if (!opt->release) vec_push(&a, "-g");
+        vec_push(&a, "-MMD");
+        vec_push(&a, "-MF");
+        vec_push(&a, depf);
+        compiler_append_target_compile_flags(&a, t, b, states, sources.items[i]);
+        vec_push(&a, "-c");
+        vec_push(&a, sources.items[i]);
+        vec_push(&a, "-o");
+        vec_push(&a, obj);
+
+        if (db) write_compile_command(db, &first, &a, sources.items[i], cwd);
+        if (!depfile_fresh(obj, depf, sources.items[i])) {
+            note("CC", "%s", sources.items[i]);
+            if (run_process(&a, opt->verbose, NULL) != 0) die("compile failed");
+            compiled++;
+        }
+        vec_free(&a);
+    }
+    if (db) {
+        fprintf(db, "\n]\n");
+        fclose(db);
+    }
+
+    char profile_dir[PATH_MAX];
+    path_join(profile_dir, "build", opt->release ? "release" : "debug");
+    mkdir_p(profile_dir);
+    char *output = malloc(PATH_MAX);
+    if (!output) die("out of memory");
+    char outname[C_MAX_NAME + 4];
+    snprintf(outname, sizeof(outname), "%s%s", t->name, t->kind == C_TARGET_STATIC_LIBRARY ? ".a" : "");
+    path_join(output, profile_dir, outname);
+    bool relink = !file_exists(output);
+    time_t outt = mtime_of(output);
+    for (size_t i = 0; i < objects.count; ++i) if (mtime_of(objects.items[i]) > outt) relink = true;
+
+    if (relink || compiled) {
+        if (t->kind == C_TARGET_STATIC_LIBRARY) {
+            StrVec a = {0};
+            vec_push(&a, compiler_ar());
+            vec_push(&a, "rcs");
+            vec_push(&a, output);
+            for (size_t i = 0; i < objects.count; ++i) vec_push(&a, objects.items[i]);
+            note("AR", "%s", output);
+            if (run_process(&a, opt->verbose, NULL) != 0) die("archive failed");
+            vec_free(&a);
+        } else {
+            StrVec a = {0};
+            vec_push(&a, opt->cc);
+            for (size_t i = 0; i < objects.count; ++i) vec_push(&a, objects.items[i]);
+            append_link_flags(&a, t, b, states);
+            vec_push(&a, "-o");
+            vec_push(&a, output);
+            note("LINK", "%s", output);
+            if (run_process(&a, opt->verbose, NULL) != 0) die("link failed");
+            vec_free(&a);
+        }
+    } else {
+        note("CACHED", "%s", t->name);
+    }
+
+    vec_free(&sources);
+    vec_free(&objects);
+    return output;
+}
+
 static void compiler_cmd_build_or_run(const Options *opt, bool run) {
     C_Build *b = alloc_build();
     load_build(opt, b);
     DepState states[C_MAX_DEPS] = {0};
     compiler_resolve_all(b, opt, states);
     C_Target *t = select_target(b, opt);
-    char *output = build_target(b, t, states, opt);
+    char *output = compiler_build_target(b, t, states, opt);
 
     if (run) {
         if (t->kind != C_TARGET_EXECUTABLE && t->kind != C_TARGET_TEST) die("target %s is not executable", t->name);
@@ -184,7 +337,7 @@ static void compiler_cmd_test(const Options *opt) {
         if (t->kind != C_TARGET_TEST) continue;
         if (opt->target_name && strcmp(t->name, opt->target_name)) continue;
         ++tests;
-        char *output = build_target(b, t, states, opt);
+        char *output = compiler_build_target(b, t, states, opt);
         note("TEST", "%s", t->name);
         StrVec a = {0};
         char exec[PATH_MAX];

@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -15,14 +16,13 @@
 #define PATH_MAX 4096
 #endif
 
-typedef struct C_AtomicFile {
-    FILE *file;
-    char temp[PATH_MAX];
-    char target[PATH_MAX];
-} C_AtomicFile;
-
-static C_AtomicFile c_atomic_files[4];
-static unsigned long c_atomic_sequence;
+/*
+ * build.c is compiled with ~/.cache/c/scripts on its include path. Older
+ * versions copied cbuild.h into that directory, which allowed stale or
+ * interrupted copies to become the header used by every project. Keep the
+ * include location, but make it a symlink to the canonical header instead.
+ */
+static char c_cbuild_source[PATH_MAX];
 
 static int c_is_cached_build_header(const char *path) {
     static const char suffix[] = "/scripts/cbuild.h";
@@ -32,67 +32,61 @@ static int c_is_cached_build_header(const char *path) {
     return n >= s && !strcmp(path + n - s, suffix);
 }
 
-static FILE *c_atomic_fopen(const char *path, const char *mode) {
-    if (!mode || strcmp(mode, "wb") || !c_is_cached_build_header(path)) {
-        return fopen(path, mode);
-    }
+static int c_is_cbuild_header(const char *path) {
+    if (!path) return 0;
+    const char *base = strrchr(path, '/');
+    base = base ? base + 1 : path;
+    return !strcmp(base, "cbuild.h");
+}
 
-    C_AtomicFile *slot = NULL;
-    for (size_t i = 0; i < sizeof(c_atomic_files) / sizeof(c_atomic_files[0]); ++i) {
-        if (!c_atomic_files[i].file) {
-            slot = &c_atomic_files[i];
-            break;
-        }
-    }
-    if (!slot) {
-        errno = EMFILE;
+static FILE *c_direct_header_fopen(const char *path, const char *mode) {
+    if (!path || !mode) {
+        errno = EINVAL;
         return NULL;
     }
 
-    if (snprintf(slot->target, sizeof(slot->target), "%s", path) >= (int)sizeof(slot->target) ||
-        snprintf(slot->temp, sizeof(slot->temp), "%s.tmp.%ld.%lu",
-                 path, (long)getpid(), ++c_atomic_sequence) >= (int)sizeof(slot->temp)) {
-        slot->target[0] = '\0';
-        slot->temp[0] = '\0';
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
-
-    slot->file = fopen(slot->temp, mode);
-    if (!slot->file) {
-        slot->target[0] = '\0';
-        slot->temp[0] = '\0';
-    }
-    return slot->file;
-}
-
-static int c_atomic_fclose(FILE *file) {
-    C_AtomicFile *slot = NULL;
-    for (size_t i = 0; i < sizeof(c_atomic_files) / sizeof(c_atomic_files[0]); ++i) {
-        if (c_atomic_files[i].file == file) {
-            slot = &c_atomic_files[i];
-            break;
+    /* Remember the exact source selected by write_embedded_header(). */
+    if (!strcmp(mode, "rb") && c_is_cbuild_header(path) &&
+        !c_is_cached_build_header(path)) {
+        char resolved[PATH_MAX];
+        if (realpath(path, resolved)) {
+            int n = snprintf(c_cbuild_source, sizeof(c_cbuild_source), "%s", resolved);
+            if (n < 0 || n >= (int)sizeof(c_cbuild_source)) {
+                c_cbuild_source[0] = '\0';
+                errno = ENAMETOOLONG;
+                return NULL;
+            }
         }
     }
 
-    if (!slot) return fclose(file);
-
-    int rc = fclose(file);
-    slot->file = NULL;
-    if (rc == 0) {
-        if (rename(slot->temp, slot->target) != 0) {
-            rc = EOF;
-            unlink(slot->temp);
+    /*
+     * copy_file() still opens the scripts path for writing. Replace that write
+     * with a symlink to the real header, and give copy_file() a scratch stream
+     * for the bytes it was going to duplicate. No cached header contents are
+     * created.
+     */
+    if (!strcmp(mode, "wb") && c_is_cached_build_header(path)) {
+        if (!c_cbuild_source[0]) {
+            errno = ENOENT;
+            return NULL;
         }
-    } else {
-        unlink(slot->temp);
+
+        if (unlink(path) != 0 && errno != ENOENT) return NULL;
+        if (symlink(c_cbuild_source, path) != 0) return NULL;
+
+        FILE *scratch = tmpfile();
+        if (!scratch) {
+            int saved = errno;
+            unlink(path);
+            errno = saved;
+            return NULL;
+        }
+        return scratch;
     }
-    slot->temp[0] = '\0';
-    slot->target[0] = '\0';
-    return rc;
+
+    return fopen(path, mode);
 }
 
-#define fopen c_atomic_fopen
-#define fclose c_atomic_fclose
+#define fopen c_direct_header_fopen
 
 #endif

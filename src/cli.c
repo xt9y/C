@@ -1,6 +1,227 @@
+#define C_DEP_CMAKE C_DEP_RESERVED
+#define cmake_options compile_flags
 #define main c_legacy_main
 #include "main.c"
 #undef main
+#undef cmake_options
+#undef C_DEP_CMAKE
+
+static const char *compiler_ar(void) {
+    const char *ar = getenv("AR");
+    return (ar && *ar) ? ar : "ar";
+}
+
+static void compiler_dep_root(const C_Dependency *d, const DepState *state, char out[PATH_MAX]) {
+    if (d->subdir[0]) path_join(out, state->source, d->subdir);
+    else c__copy(out, PATH_MAX, state->source);
+}
+
+static void compiler_dep_library(const C_Dependency *d, const DepState *state, char out[PATH_MAX]) {
+    char name[C_MAX_NAME + 8];
+    snprintf(name, sizeof(name), "lib%s.a", d->name);
+    path_join(out, state->package, name);
+}
+
+static void compiler_build_dependency(const C_Dependency *d, const Options *opt, DepState *state) {
+    if (d->kind != C_DEP_SOURCE) return;
+    if (!d->source_patterns.count) die("source dependency %s has no sources; use c_dep_sources()", d->name);
+
+    char library[PATH_MAX];
+    compiler_dep_library(d, state, library);
+    if (file_exists(library)) {
+        note("CACHED", "%s", d->name);
+        return;
+    }
+
+    mkdir_p(state->package);
+    char objdir[PATH_MAX];
+    path_join(objdir, state->package, ".objs");
+    mkdir_p(objdir);
+
+    char root[PATH_MAX];
+    compiler_dep_root(d, state, root);
+
+    StrVec sources = {0}, objects = {0};
+    for (size_t i = 0; i < d->source_patterns.count; ++i) {
+        char pattern[PATH_MAX];
+        path_join(pattern, root, d->source_patterns.items[i]);
+        expand_pattern(pattern, &sources);
+    }
+
+    note("DEP", "%s", d->name);
+    for (size_t i = 0; i < sources.count; ++i) {
+        char obj[PATH_MAX];
+        object_path(objdir, sources.items[i], obj);
+        vec_push(&objects, obj);
+
+        StrVec a = {0};
+        vec_push(&a, opt->cc);
+        vec_push(&a, "-std=c11");
+        vec_push(&a, opt->release ? "-O2" : "-O0");
+        if (!opt->release) vec_push(&a, "-g");
+
+        char root_inc[PATH_MAX + 3];
+        snprintf(root_inc, sizeof(root_inc), "-I%s", root);
+        vec_push(&a, root_inc);
+        for (size_t j = 0; j < d->include_dirs.count; ++j) {
+            char inc[PATH_MAX], arg[PATH_MAX + 3];
+            path_join(inc, root, d->include_dirs.items[j]);
+            snprintf(arg, sizeof(arg), "-I%s", inc);
+            vec_push(&a, arg);
+        }
+        for (size_t j = 0; j < d->compile_flags.count; ++j) vec_push(&a, d->compile_flags.items[j]);
+        vec_push(&a, "-c");
+        vec_push(&a, sources.items[i]);
+        vec_push(&a, "-o");
+        vec_push(&a, obj);
+
+        note("CC", "%s", sources.items[i]);
+        if (run_process(&a, opt->verbose, NULL) != 0) die("dependency compile failed: %s", d->name);
+        vec_free(&a);
+    }
+
+    StrVec ar = {0};
+    vec_push(&ar, compiler_ar());
+    vec_push(&ar, "rcs");
+    vec_push(&ar, library);
+    for (size_t i = 0; i < objects.count; ++i) vec_push(&ar, objects.items[i]);
+    note("AR", "%s", library);
+    if (run_process(&ar, opt->verbose, NULL) != 0) die("dependency archive failed: %s", d->name);
+    vec_free(&ar);
+    vec_free(&sources);
+    vec_free(&objects);
+}
+
+static void compiler_prepare_target_links(C_Build *b, DepState states[]) {
+    for (size_t ti = 0; ti < b->target_count; ++ti) {
+        C_Target *t = &b->targets[ti];
+        C_StringList ordered = {0};
+
+        for (size_t i = 0; i < t->dep_count; ++i) {
+            C_Dependency *d = t->deps[i];
+            if (d->kind != C_DEP_SOURCE) continue;
+            ptrdiff_t idx = d - b->deps;
+            if (idx < 0 || (size_t)idx >= b->dep_count) die("target %s has invalid dependency", t->name);
+            char library[PATH_MAX];
+            compiler_dep_library(d, &states[idx], library);
+            c__push(&ordered, library);
+        }
+
+        for (size_t i = 0; i < t->system_links.count; ++i) {
+            char arg[C_MAX_NAME + 3];
+            snprintf(arg, sizeof(arg), "-l%s", t->system_links.items[i]);
+            c__push(&ordered, arg);
+        }
+#ifdef __APPLE__
+        for (size_t i = 0; i < t->frameworks.count; ++i) {
+            c__push(&ordered, "-framework");
+            c__push(&ordered, t->frameworks.items[i]);
+        }
+#endif
+        for (size_t i = 0; i < t->ldflags.count; ++i) c__push(&ordered, t->ldflags.items[i]);
+
+        free_c_list(&t->system_links);
+        free_c_list(&t->frameworks);
+        free_c_list(&t->ldflags);
+        t->ldflags = ordered;
+    }
+
+    for (size_t i = 0; i < b->dep_count; ++i) {
+        if (b->deps[i].kind == C_DEP_SOURCE) b->deps[i].kind = C_DEP_HEADER_ONLY;
+    }
+}
+
+static void compiler_resolve_all(C_Build *b, const Options *opt, DepState states[]) {
+    LockFile lock;
+    load_lock(&lock);
+    for (size_t i = 0; i < b->dep_count; ++i) {
+        C_Dependency *d = &b->deps[i];
+        if (d->kind == C_DEP_RESERVED) die("external build-system dependencies are not supported; use c_dep_source()");
+        resolve_dependency(d, opt, &lock, &states[i], false);
+        compiler_build_dependency(d, opt, &states[i]);
+    }
+    save_lock(&lock);
+    compiler_prepare_target_links(b, states);
+}
+
+static void compiler_cmd_build_or_run(const Options *opt, bool run) {
+    C_Build *b = alloc_build();
+    load_build(opt, b);
+    DepState states[C_MAX_DEPS] = {0};
+    compiler_resolve_all(b, opt, states);
+    C_Target *t = select_target(b, opt);
+    char *output = build_target(b, t, states, opt);
+
+    if (run) {
+        if (t->kind != C_TARGET_EXECUTABLE && t->kind != C_TARGET_TEST) die("target %s is not executable", t->name);
+        note("RUN", "%s", output);
+        StrVec a = {0};
+        char exec[PATH_MAX];
+        if (output[0] == '/') snprintf(exec, sizeof(exec), "%s", output);
+        else snprintf(exec, sizeof(exec), "./%s", output);
+        vec_push(&a, exec);
+        for (int i = 0; i < opt->run_argc; ++i) vec_push(&a, opt->run_argv[i]);
+        int rc = run_process(&a, opt->verbose, NULL);
+        vec_free(&a);
+        free(output);
+        free_build(b);
+        exit(rc);
+    }
+
+    free(output);
+    free_build(b);
+}
+
+static void compiler_cmd_test(const Options *opt) {
+    C_Build *b = alloc_build();
+    load_build(opt, b);
+    DepState states[C_MAX_DEPS] = {0};
+    compiler_resolve_all(b, opt, states);
+    size_t tests = 0;
+
+    for (size_t i = 0; i < b->target_count; ++i) {
+        C_Target *t = &b->targets[i];
+        if (t->kind != C_TARGET_TEST) continue;
+        if (opt->target_name && strcmp(t->name, opt->target_name)) continue;
+        ++tests;
+        char *output = build_target(b, t, states, opt);
+        note("TEST", "%s", t->name);
+        StrVec a = {0};
+        char exec[PATH_MAX];
+        snprintf(exec, sizeof(exec), "./%s", output);
+        vec_push(&a, exec);
+        int rc = run_process(&a, opt->verbose, NULL);
+        vec_free(&a);
+        free(output);
+        if (rc != 0) die("test failed: %s", t->name);
+    }
+
+    if (!tests) die("no test targets defined; use c_test() in build.c");
+    note("PASS", "%zu test target%s", tests, tests == 1 ? "" : "s");
+    free_build(b);
+}
+
+static void compiler_cmd_doctor(const Options *opt) {
+    struct utsname u;
+    uname(&u);
+    printf("c %s\n\n", C_VERSION);
+    printf("Platform   %s %s\n", u.sysname, u.machine);
+    printf("Compiler   %s%s\n", opt->cc, command_exists(opt->cc) ? "" : "  [missing]");
+    printf("Archiver   %s%s\n", compiler_ar(), command_exists(compiler_ar()) ? "" : "  [missing]");
+    printf("Git        %s\n", command_exists("git") ? "ok" : "missing");
+    char cache[PATH_MAX];
+    cache_root(cache);
+    printf("Cache      %s\n", cache);
+}
+
+static int compiler_dispatch(int argc, char **argv) {
+    Options opt = parse_options(argc, argv);
+    if (!strcmp(opt.command, "build")) { compiler_cmd_build_or_run(&opt, false); return 0; }
+    if (!strcmp(opt.command, "run")) { compiler_cmd_build_or_run(&opt, true); return 0; }
+    if (!strcmp(opt.command, "test")) { compiler_cmd_test(&opt); return 0; }
+    if (!strcmp(opt.command, "doctor")) { compiler_cmd_doctor(&opt); return 0; }
+    return c_legacy_main(argc, argv);
+}
 
 static bool cli_is_command(const char *s) {
     static const char *commands[] = {
@@ -48,13 +269,10 @@ static const char *cli_target(int argc, char **argv) {
 
 static bool cli_color(void) {
     const char *term = getenv("TERM");
-    return isatty(STDERR_FILENO) && !getenv("NO_COLOR") &&
-           (!term || strcmp(term, "dumb"));
+    return isatty(STDERR_FILENO) && !getenv("NO_COLOR") && (!term || strcmp(term, "dumb"));
 }
 
-static const char *cli_style(bool color, const char *code) {
-    return color ? code : "";
-}
+static const char *cli_style(bool color, const char *code) { return color ? code : ""; }
 
 static double cli_now_ms(void) {
     struct timespec ts = {0};
@@ -98,13 +316,10 @@ static void cli_heading(const char *command, int argc, char **argv) {
     const char *dim = cli_style(color, "\x1b[2m");
     const char *reset = cli_style(color, "\x1b[0m");
     const char *target = cli_target(argc, argv);
-
     fprintf(stderr, "%s%s%s", bold, command, reset);
     if (target && strcmp(command, "cache")) fprintf(stderr, " %s", target);
     if (!strcmp(command, "build") || !strcmp(command, "run") || !strcmp(command, "test")) {
-        fprintf(stderr, " %s[%s]%s", dim,
-                cli_has_flag(argc, argv, "--release", "-Drelease") ? "release" : "debug",
-                reset);
+        fprintf(stderr, " %s[%s]%s", dim, cli_has_flag(argc, argv, "--release", "-Drelease") ? "release" : "debug", reset);
     }
     fputc('\n', stderr);
 }
@@ -116,9 +331,7 @@ static void cli_step(const char *kind, const char *message) {
     const char *green = cli_style(color, "\x1b[32m");
     const char *reset = cli_style(color, "\x1b[0m");
     const char *name = cli_step_name(kind);
-    const char *style = (!strcmp(kind, "CACHED")) ? dim :
-                        (!strcmp(kind, "PASS") || !strcmp(kind, "DONE")) ? green : cyan;
-
+    const char *style = (!strcmp(kind, "CACHED")) ? dim : (!strcmp(kind, "PASS") || !strcmp(kind, "DONE")) ? green : cyan;
     fprintf(stderr, "%s  ├─%s %s%-10s%s %s", dim, reset, style, name, reset, message);
     size_t n = strlen(message);
     if (!n || message[n - 1] != '\n') fputc('\n', stderr);
@@ -130,20 +343,13 @@ static void cli_finish(int rc, double elapsed_ms) {
     const char *green = cli_style(color, "\x1b[32m");
     const char *red = cli_style(color, "\x1b[31m");
     const char *reset = cli_style(color, "\x1b[0m");
-
-    if (rc == 0) {
-        fprintf(stderr, "%s  └─%s %ssuccess%s %s%.0f ms%s\n",
-                dim, reset, green, reset, dim, elapsed_ms, reset);
-    } else {
-        fprintf(stderr, "%s  └─%s %sfailed%s %s(exit %d, %.0f ms)%s\n",
-                dim, reset, red, reset, dim, rc, elapsed_ms, reset);
-    }
+    if (rc == 0) fprintf(stderr, "%s  └─%s %ssuccess%s %s%.0f ms%s\n", dim, reset, green, reset, dim, elapsed_ms, reset);
+    else fprintf(stderr, "%s  └─%s %sfailed%s %s(exit %d, %.0f ms)%s\n", dim, reset, red, reset, dim, rc, elapsed_ms, reset);
 }
 
 static bool cli_quiet_stdout(const char *command, const char *target) {
-    if (!strcmp(command, "build") || !strcmp(command, "run") ||
-        !strcmp(command, "fetch") || !strcmp(command, "update") ||
-        !strcmp(command, "test") || !strcmp(command, "clean") ||
+    if (!strcmp(command, "build") || !strcmp(command, "run") || !strcmp(command, "fetch") ||
+        !strcmp(command, "update") || !strcmp(command, "test") || !strcmp(command, "clean") ||
         !strcmp(command, "init")) return true;
     return !strcmp(command, "cache") && target && !strcmp(target, "clean");
 }
@@ -156,40 +362,26 @@ static int cli_run_segment(int argc, char **argv) {
     bool quiet = cli_quiet_stdout(command, target);
     bool show_program_output = false;
     double started = cli_now_ms();
-
     if (action) cli_heading(command, argc, argv);
 
     int fds[2];
-    if (pipe(fds) != 0) {
-        perror("pipe");
-        return 1;
-    }
-
+    if (pipe(fds) != 0) { perror("pipe"); return 1; }
     pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork");
-        close(fds[0]);
-        close(fds[1]);
-        return 1;
-    }
+    if (pid < 0) { perror("fork"); close(fds[0]); close(fds[1]); return 1; }
 
     if (pid == 0) {
         close(fds[0]);
         if (dup2(fds[1], STDOUT_FILENO) < 0) _exit(127);
         close(fds[1]);
         setvbuf(stdout, NULL, _IONBF, 0);
-        int rc = c_legacy_main(argc, argv);
+        int rc = compiler_dispatch(argc, argv);
         fflush(NULL);
         _exit(rc);
     }
 
     close(fds[1]);
     FILE *stream = fdopen(fds[0], "r");
-    if (!stream) {
-        close(fds[0]);
-        waitpid(pid, NULL, 0);
-        return 1;
-    }
+    if (!stream) { close(fds[0]); waitpid(pid, NULL, 0); return 1; }
 
     char *line = NULL;
     size_t cap = 0;
@@ -197,15 +389,11 @@ static int cli_run_segment(int argc, char **argv) {
         char kind[8];
         const char *message = NULL;
         if (cli_parse_note(line, kind, &message)) {
-            if (action) cli_step(kind, message);
-            else fputs(line, stdout);
+            if (action) cli_step(kind, message); else fputs(line, stdout);
             if (!strcmp(kind, "RUN") || !strcmp(kind, "TEST")) show_program_output = true;
             continue;
         }
-        if (!quiet || verbose || show_program_output) {
-            fputs(line, stdout);
-            fflush(stdout);
-        }
+        if (!quiet || verbose || show_program_output) { fputs(line, stdout); fflush(stdout); }
     }
     free(line);
     fclose(stream);
@@ -215,19 +403,11 @@ static int cli_run_segment(int argc, char **argv) {
     int rc = 1;
     if (WIFEXITED(status)) rc = WEXITSTATUS(status);
     else if (WIFSIGNALED(status)) rc = 128 + WTERMSIG(status);
-
     if (action) cli_finish(rc, cli_now_ms() - started);
 
-    if (rc == 0 && cli_is_version_or_help(command) &&
-        (!strcmp(command, "help") || !strcmp(command, "--help") || !strcmp(command, "-h"))) {
-        fputs("\nchaining:\n"
-              "  c clean build run\n"
-              "  c fetch build test\n\n"
-              "Commands run left-to-right and stop on the first failure.\n"
-              "Arguments after `--` belong to `c run` and end the command chain.\n",
-              stdout);
+    if (rc == 0 && cli_is_version_or_help(command) && (!strcmp(command, "help") || !strcmp(command, "--help") || !strcmp(command, "-h"))) {
+        fputs("\nchaining:\n  c clean build run\n  c fetch build test\n\nCommands run left-to-right and stop on the first failure.\nArguments after `--` belong to `c run` and end the command chain.\n", stdout);
     }
-
     return rc;
 }
 
@@ -237,37 +417,26 @@ static bool cli_cache_clean_argument(int start, int i, char **argv) {
 
 int main(int argc, char **argv) {
     if (argc < 2) return cli_run_segment(argc, argv);
-
     int start = 1;
     bool first_action = true;
     while (start < argc) {
         int end = argc;
         bool forwarded_args = false;
         for (int i = start + 1; i < argc; ++i) {
-            if (!strcmp(argv[i], "--")) {
-                forwarded_args = true;
-                break;
-            }
-            if (cli_is_command(argv[i]) && !cli_cache_clean_argument(start, i, argv)) {
-                end = i;
-                break;
-            }
+            if (!strcmp(argv[i], "--")) { forwarded_args = true; break; }
+            if (cli_is_command(argv[i]) && !cli_cache_clean_argument(start, i, argv)) { end = i; break; }
         }
         if (forwarded_args) end = argc;
 
         int seg_argc = 1 + (end - start);
         char **seg_argv = calloc((size_t)seg_argc + 1, sizeof(*seg_argv));
-        if (!seg_argv) {
-            fputs("c: error: out of memory\n", stderr);
-            return 1;
-        }
+        if (!seg_argv) { fputs("c: error: out of memory\n", stderr); return 1; }
         seg_argv[0] = argv[0];
         for (int i = start; i < end; ++i) seg_argv[1 + i - start] = argv[i];
 
         bool segment_action = seg_argc > 1 && cli_is_action(seg_argv[1]);
         if (segment_action && !first_action) fputc('\n', stderr);
         if (segment_action) first_action = false;
-
         int rc = cli_run_segment(seg_argc, seg_argv);
         free(seg_argv);
         if (rc != 0) return rc;

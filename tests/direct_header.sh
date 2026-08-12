@@ -35,12 +35,20 @@ EOF
 cd "$PROJECT"
 C_CACHE_DIR="$CACHE" C_INCLUDE_DIR="$STALE" "$C_BIN" build >/dev/null
 
-[ -L "$CACHE/scripts/cbuild.h" ]
-cmp "$INC/cbuild.h" "$CACHE/scripts/cbuild.h"
+# The legacy cache path must be removed, not copied or symlinked.
+[ ! -e "$CACHE/scripts/cbuild.h" ]
+[ ! -L "$CACHE/scripts/cbuild.h" ]
 
-rm -f "$CACHE/scripts/cbuild.h"
+# Recreate a poisoned old cache entry and prove every build removes it.
+cat > "$CACHE/scripts/cbuild.h" <<'EOF'
+#error stale cached cbuild.h must never survive another build
+EOF
+
 C_CACHE_DIR="$CACHE" C_INCLUDE_DIR="$STALE" "$C_BIN" clean build >/dev/null
-[ -L "$CACHE/scripts/cbuild.h" ]
-cmp "$INC/cbuild.h" "$CACHE/scripts/cbuild.h"
+[ ! -e "$CACHE/scripts/cbuild.h" ]
+[ ! -L "$CACHE/scripts/cbuild.h" ]
+
+# Sanity-check the canonical header used by the test is the current API.
+grep -q 'c_dep_flag' "$INC/cbuild.h"
 
 echo "direct_header: ok"

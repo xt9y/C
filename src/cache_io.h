@@ -21,10 +21,19 @@
 #endif
 
 /*
- * main.c still asks copy_file() to populate ~/.cache/c/scripts/cbuild.h.
- * Never let that path own header bytes. Replace it with a symlink to the
- * canonical header that belongs to the running c executable.
+ * main.c historically copied cbuild.h to <cache>/scripts/cbuild.h and then
+ * compiled build.c with that directory on the include path. Keep the old core
+ * ABI untouched, but make that cached header purely virtual:
+ *
+ *   - writes to <cache>/scripts/cbuild.h are discarded;
+ *   - reads of that path (used for the build-script cache hash) read the
+ *     canonical cbuild.h instead;
+ *   - the compiler invocation for build.c receives the canonical include dir.
+ *
+ * Therefore no cached cbuild.h file or symlink is created, while changes to
+ * the real header still invalidate the compiled build.c module.
  */
+
 static int c_is_cached_build_header(const char *path) {
     static const char suffix[] = "/scripts/cbuild.h";
     if (!path) return 0;
@@ -59,8 +68,8 @@ static int c_header_beside_binary(char out[PATH_MAX]) {
     *slash = '\0';
 
     char candidate[PATH_MAX];
-    int path_len = snprintf(candidate, sizeof(candidate), "%s/../include/cbuild.h", exe);
-    if (path_len < 0 || path_len >= (int)sizeof(candidate)) {
+    int n = snprintf(candidate, sizeof(candidate), "%s/../include/cbuild.h", exe);
+    if (n < 0 || n >= (int)sizeof(candidate)) {
         errno = ENAMETOOLONG;
         return 0;
     }
@@ -68,15 +77,14 @@ static int c_header_beside_binary(char out[PATH_MAX]) {
 }
 
 static int c_canonical_header(char out[PATH_MAX]) {
-    /* Installed/development layout is authoritative. */
+    /* The header installed/built beside the running c executable wins. */
     if (c_header_beside_binary(out)) return 1;
 
 #ifdef CBUILD_HEADER_PATH
-    /* Build-time fallback for unusual executable layouts. */
     if (c_copy_readable_path(CBUILD_HEADER_PATH, out)) return 1;
 #endif
 
-    /* Preserve C_INCLUDE_DIR only as a last-resort compatibility override. */
+    /* Development fallback only. */
     const char *inc = getenv("C_INCLUDE_DIR");
     if (inc && *inc) {
         char candidate[PATH_MAX];
@@ -89,37 +97,84 @@ static int c_canonical_header(char out[PATH_MAX]) {
     return 0;
 }
 
+static int c_canonical_include(char out[PATH_MAX]) {
+    if (!c_canonical_header(out)) return 0;
+    char *slash = strrchr(out, '/');
+    if (!slash) {
+        errno = EINVAL;
+        return 0;
+    }
+    *slash = '\0';
+    return 1;
+}
+
 static FILE *c_direct_header_fopen(const char *path, const char *mode) {
     if (!path || !mode) {
         errno = EINVAL;
         return NULL;
     }
 
-    if (!strcmp(mode, "wb") && c_is_cached_build_header(path)) {
-        char source[PATH_MAX];
-        if (!c_canonical_header(source)) return NULL;
-        if (!strcmp(source, path)) {
-            errno = ELOOP;
-            return NULL;
+    if (c_is_cached_build_header(path)) {
+        if (!strcmp(mode, "wb")) {
+            /* Remove leftovers from older c versions and discard the copy. */
+            if (unlink(path) != 0 && errno != ENOENT) return NULL;
+            return tmpfile();
         }
 
-        if (unlink(path) != 0 && errno != ENOENT) return NULL;
-        if (symlink(source, path) != 0) return NULL;
-
-        /* copy_file() may continue writing, but those bytes go nowhere. */
-        FILE *scratch = tmpfile();
-        if (!scratch) {
-            int saved = errno;
-            unlink(path);
-            errno = saved;
-            return NULL;
+        if (!strcmp(mode, "rb")) {
+            char canonical[PATH_MAX];
+            if (!c_canonical_header(canonical)) return NULL;
+            return fopen(canonical, mode);
         }
-        return scratch;
     }
 
     return fopen(path, mode);
 }
 
+static int c_build_script_argv(char *const argv[]) {
+    if (!argv) return 0;
+    for (size_t i = 0; argv[i]; ++i) {
+        if (!strcmp(argv[i], "build.c")) return 1;
+    }
+    return 0;
+}
+
+static int c_direct_header_execvp(const char *file, char *const argv[]) {
+    if (!c_build_script_argv(argv)) return execvp(file, argv);
+
+    char include_dir[PATH_MAX];
+    if (!c_canonical_include(include_dir)) return execvp(file, argv);
+
+    char include_arg[PATH_MAX + 3];
+    int n = snprintf(include_arg, sizeof(include_arg), "-I%s", include_dir);
+    if (n < 0 || n >= (int)sizeof(include_arg)) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+
+    char *rewritten[256];
+    size_t count = 0;
+    int replaced = 0;
+    while (argv[count]) {
+        if (count + 2 >= sizeof(rewritten) / sizeof(rewritten[0])) {
+            errno = E2BIG;
+            return -1;
+        }
+        rewritten[count] = argv[count];
+        if (!replaced && argv[count][0] == '-' && argv[count][1] == 'I' &&
+            strstr(argv[count] + 2, "/scripts")) {
+            rewritten[count] = include_arg;
+            replaced = 1;
+        }
+        ++count;
+    }
+
+    if (!replaced) rewritten[count++] = include_arg;
+    rewritten[count] = NULL;
+    return execvp(file, rewritten);
+}
+
 #define fopen c_direct_header_fopen
+#define execvp c_direct_header_execvp
 
 #endif

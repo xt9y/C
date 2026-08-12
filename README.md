@@ -2,7 +2,7 @@
 
 A build system and dependency manager for C.
 
-Configure builds in **C**, add Git dependencies directly, and keep dependency sources/build artifacts in one global cache instead of copying them into every project.
+Configure builds in **C**, add Git dependencies directly, and let `c` compile those dependencies itself. Projects do not need CMake, Meson, Autotools, or another dependency build system.
 
 ```sh
 c build
@@ -11,15 +11,18 @@ c run
 
 ## Why
 
-C has excellent compilers and a fragmented build/package story. `c` aims for the workflow of a modern integrated build system without introducing another configuration language.
+C has excellent compilers and a fragmented build/package story. `c` aims for the workflow of a modern integrated build system without introducing another configuration language or delegating builds to other build systems.
 
 - `build.c` is real C.
+- Project and dependency sources are compiled by the selected C compiler.
 - Git dependencies are globally cached.
+- Source dependencies are cached as static archives.
 - `c.lock` pins dependencies to exact commits.
 - Incremental compilation uses compiler depfiles.
 - `compile_commands.json` is generated automatically.
 - macOS and Linux are the first-class targets.
 - No project-local `vendor/` or dependency clones are required.
+- No CMake/Make/Meson invocation is used by `c build`.
 
 ## Example
 
@@ -40,11 +43,18 @@ c run
 c run -- hello world
 ```
 
+Commands can be chained:
+
+```sh
+c clean build run
+c fetch build test
+```
+
 ## Git dependencies
 
-Dependencies are described in `build.c` and resolved into a global cache.
+Dependencies are described in `build.c` and resolved into the global cache.
 
-### Header-only/raw source tree
+### Header-only dependency
 
 ```c
 C_Dependency *stb = c_git(
@@ -62,35 +72,24 @@ The dependency checkout is stored globally and its source directory is added as 
 
 ### Source dependency
 
-For small C libraries, `c` can compile dependency sources directly into the consuming target while keeping the checkout global:
-
 ```c
-C_Dependency *foo = c_git(b, "foo", "https://github.com/example/foo.git", "v1.0.0");
+C_Dependency *foo = c_git(
+    b,
+    "foo",
+    "https://github.com/example/foo.git",
+    "v1.0.0"
+);
+
 c_dep_source(foo);
 c_dep_include(foo, "include");
 c_dep_sources(foo, "src/*.c");
+c_dep_flag(foo, "-DFOO_FEATURE=1");
 c_use(app, foo);
 ```
 
-No project-local clone is created.
+`c` checks out the pinned revision globally, compiles the declared dependency sources with the selected compiler, archives them into a cached `libfoo.a`, and links that archive into the consuming target.
 
-### CMake library
-
-```c
-C_Dependency *raylib = c_git(
-    b,
-    "raylib",
-    "https://github.com/raysan5/raylib.git",
-    "5.5"
-);
-
-c_dep_cmake(raylib);
-c_dep_link(raylib, "raylib");
-c_dep_cmake_option(raylib, "-DBUILD_EXAMPLES=OFF");
-c_use(app, raylib);
-```
-
-`c` keeps one bare Git mirror per repository, checks resolved commits out into the global cache, and stores CMake install artifacts globally as well. Libraries can still require platform-specific system libraries/frameworks; see the tested Raylib example in `examples/raylib` for a complete case.
+Dependency compile flags are isolated from the application sources. No project-local clone and no dependency-specific build system are required.
 
 ## Lockfile
 
@@ -130,7 +129,23 @@ Useful options:
 -v / --verbose
 ```
 
-Compiler selection also respects `CC`.
+Compiler selection also respects `CC`. Static archives use `AR` when set, otherwise `ar`.
+
+## Requirements
+
+For normal local projects:
+
+```text
+C compiler toolchain
+```
+
+For Git dependencies:
+
+```text
+Git
+```
+
+No CMake, Meson, Ninja, or Autotools installation is required by the build engine.
 
 ## Global cache
 
@@ -149,7 +164,7 @@ macOS:
 
 Override it with `C_CACHE_DIR`.
 
-The cache is split into reusable Git mirrors, source checkouts, dependency build directories, installed dependency artifacts, and compiled `build.c` modules.
+The cache contains reusable Git mirrors, immutable source checkouts, compiled dependency archives, and compiled `build.c` modules.
 
 ## Install
 
@@ -195,7 +210,7 @@ src/main.c
 
 ### Raylib
 
-`examples/raylib` is a complete Git + CMake dependency example. Raylib is fetched from its upstream repository, pinned by `c.lock`, built into the global cache, and linked into a small C application.
+`examples/raylib` builds Raylib 5.5 directly from its C sources. The Git checkout and compiled static archive are globally cached; CMake is not used.
 
 ```sh
 cd examples/raylib
@@ -203,11 +218,11 @@ c build
 c run
 ```
 
-On Linux, Raylib still needs the normal X11/OpenGL/audio development packages from the operating system. See `examples/raylib/README.md` for the tested Debian/Ubuntu package list.
+On Linux, Raylib still needs the normal X11/OpenGL/audio development libraries from the operating system. See `examples/raylib/README.md` for the tested Debian/Ubuntu package list.
 
 ## Current scope
 
-v0.1 intentionally focuses on the core workflow:
+v0.1 currently includes:
 
 - C11 projects
 - executables
@@ -219,13 +234,13 @@ v0.1 intentionally focuses on the core workflow:
 - system libraries and macOS frameworks
 - globally cached Git dependencies
 - header-only dependencies
-- raw/source dependencies
-- CMake dependencies
+- compiler-built source dependencies
+- dependency-specific compiler flags
 - lockfile pinning
 - debug/release builds
 - macOS/Linux
 
-Planned next: native `c` packages with exported public/private dependency metadata, parallel build graph execution, shared libraries, `pkg-config` integration, cache garbage collection, cross compilation, and richer package adapters.
+Planned next: native package metadata with exported public/private dependency information, parallel build graph execution, shared libraries, cache garbage collection, cross compilation, and richer compiler-native package adapters.
 
 ## Philosophy
 
@@ -235,4 +250,4 @@ The project should remain boring to use:
 c build
 ```
 
-should be the normal case. Build complexity belongs in `build.c`, and dependency storage belongs in the global cache—not in every repository.
+should be the normal case. Build complexity belongs in `build.c`, dependency storage belongs in the global cache, and compilation belongs to the compiler—not another build system.

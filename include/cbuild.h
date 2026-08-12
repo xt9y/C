@@ -30,7 +30,7 @@ typedef enum C_TargetKind {
 
 typedef enum C_DepKind {
     C_DEP_HEADER_ONLY = 0,
-    C_DEP_CMAKE = 1,
+    C_DEP_RESERVED = 1,
     C_DEP_SOURCE = 2
 } C_DepKind;
 
@@ -46,10 +46,10 @@ typedef struct C_Dependency {
     char ref[C_MAX_NAME];
     char subdir[C_MAX_PATH];
     C_DepKind kind;
-    C_StringList links;
+    C_StringList links;          /* reserved for ABI compatibility */
     C_StringList include_dirs;
     C_StringList source_patterns;
-    C_StringList cmake_options;
+    C_StringList compile_flags;
 } C_Dependency;
 
 typedef struct C_Target {
@@ -154,13 +154,11 @@ static inline C_Dependency *c_git(C_Build *b, const char *name, const char *git,
 }
 
 static inline void c_dep_header_only(C_Dependency *d) { if (d) d->kind = C_DEP_HEADER_ONLY; }
-static inline void c_dep_cmake(C_Dependency *d) { if (d) d->kind = C_DEP_CMAKE; }
 static inline void c_dep_source(C_Dependency *d) { if (d) d->kind = C_DEP_SOURCE; }
 static inline void c_dep_include(C_Dependency *d, const char *path) { if (d) c__push(&d->include_dirs, path); }
 static inline void c_dep_sources(C_Dependency *d, const char *pattern) { if (d) c__push(&d->source_patterns, pattern); }
 static inline void c_dep_subdir(C_Dependency *d, const char *path) { if (d) c__copy(d->subdir, sizeof(d->subdir), path); }
-static inline void c_dep_link(C_Dependency *d, const char *name) { if (d) c__push(&d->links, name); }
-static inline void c_dep_cmake_option(C_Dependency *d, const char *option) { if (d) c__push(&d->cmake_options, option); }
+static inline void c_dep_flag(C_Dependency *d, const char *flag) { if (d) c__push(&d->compile_flags, flag); }
 
 static inline void c_use(C_Target *t, C_Dependency *d) {
     if (!t || !d || t->dep_count >= C_MAX_DEPS) return;

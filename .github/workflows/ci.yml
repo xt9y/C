@@ -16,3 +16,26 @@ jobs:
         run: make
       - name: Test
         run: make test
+
+  raylib:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libgl1-mesa-dev libglu1-mesa-dev \
+            libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev libxext-dev xvfb
+      - name: Build c
+        run: make
+      - name: Build Raylib example without CMake
+        working-directory: examples/raylib
+        run: ../../build/c build --release
+      - name: Run Raylib example on Linux
+        if: runner.os == 'Linux'
+        working-directory: examples/raylib
+        run: xvfb-run -a ../../build/c run --release -- --ci

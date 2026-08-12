@@ -49,9 +49,9 @@ static int c_header_beside_binary(char out[PATH_MAX]) {
     uint32_t size = (uint32_t)sizeof(exe);
     if (_NSGetExecutablePath(exe, &size) != 0) return 0;
 #else
-    ssize_t n = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
-    if (n <= 0) return 0;
-    exe[n] = '\0';
+    ssize_t exe_len = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+    if (exe_len <= 0) return 0;
+    exe[exe_len] = '\0';
 #endif
 
     char *slash = strrchr(exe, '/');
@@ -59,8 +59,8 @@ static int c_header_beside_binary(char out[PATH_MAX]) {
     *slash = '\0';
 
     char candidate[PATH_MAX];
-    int n = snprintf(candidate, sizeof(candidate), "%s/../include/cbuild.h", exe);
-    if (n < 0 || n >= (int)sizeof(candidate)) {
+    int path_len = snprintf(candidate, sizeof(candidate), "%s/../include/cbuild.h", exe);
+    if (path_len < 0 || path_len >= (int)sizeof(candidate)) {
         errno = ENAMETOOLONG;
         return 0;
     }

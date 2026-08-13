@@ -6,7 +6,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "benchmarks" / "sdl3"))
 
-from benchmark_curve import choose_ranges
+from curve_selector import choose_ranges
 
 
 def main():

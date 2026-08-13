@@ -2,6 +2,8 @@
 set -eu
 C_BIN="$1"
 INC="$2"
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+python3 "$ROOT/tests/benchmark_curve_selector.py"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT INT TERM
 cd "$TMP"

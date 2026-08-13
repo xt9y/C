@@ -3,12 +3,23 @@ name: SDL3 benchmark
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: sdl3-benchmark-publish
+  cancel-in-progress: false
+
 jobs:
   benchmark:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Tools
         run: |
@@ -31,11 +42,12 @@ jobs:
           set -o pipefail
           python3 benchmarks/sdl3/benchmark.py | tee benchmark-report/benchmark.log
 
-      - name: Build benchmark report
+      - name: Generate benchmark files
         run: |
           python3 benchmarks/sdl3/render_report.py \
             benchmark-report/benchmark.log \
-            benchmark-report
+            benchmark-report \
+            --repo-root "$GITHUB_WORKSPACE"
 
       - name: Publish benchmark summary
         run: cat benchmark-report/summary.md >> "$GITHUB_STEP_SUMMARY"
@@ -48,3 +60,30 @@ jobs:
           path: benchmark-report/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Commit generated benchmark
+        run: |
+          git fetch origin main
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "main changed while the benchmark was running; refusing to publish stale results"
+            echo "Run the workflow again from the latest main."
+            exit 1
+          fi
+
+          git add -- \
+            BENCHMARK.md \
+            README.md \
+            benchmarks/sdl3/timings.svg \
+            benchmarks/sdl3/resources.svg \
+            benchmarks/sdl3/results.json
+          git add -u -- benchmarks/sdl3
+
+          if git diff --cached --quiet; then
+            echo "Generated benchmark files are already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update SDL3 benchmark [skip ci]"
+          git push origin HEAD:main

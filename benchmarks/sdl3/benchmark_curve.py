@@ -75,6 +75,37 @@ def compatible(repo, revision, sources):
     return all(path in present for path in sources)
 
 
+def range_change_stats(repo, base):
+    commits = int(
+        subprocess.check_output(
+            ["git", "rev-list", "--count", f"{base}..{CHANGE}"],
+            cwd=repo,
+            text=True,
+        ).strip()
+    )
+    raw = subprocess.check_output(
+        ["git", "diff", "--numstat", base, CHANGE, "--"],
+        cwd=repo,
+        text=True,
+    )
+    files = []
+    additions = deletions = 0
+    for line in raw.splitlines():
+        add, delete, path = line.split("\t", 2)
+        add_n = 0 if add == "-" else int(add)
+        del_n = 0 if delete == "-" else int(delete)
+        additions += add_n
+        deletions += del_n
+        files.append({"path": path, "additions": add_n, "deletions": del_n})
+    return {
+        "commits": commits,
+        "files_changed": len(files),
+        "additions": additions,
+        "deletions": deletions,
+        "files": files,
+    }
+
+
 def select_ranges(repo, deps, sources):
     commits = subprocess.check_output(
         ["git", "rev-list", "--first-parent", f"--max-count={HISTORY_LIMIT}", CHANGE],
@@ -122,31 +153,28 @@ def select_ranges(repo, deps, sources):
             "base": revision,
             "predicted_tus": count,
             "predicted_changed_files": files,
-            "change_stats": stats.change_stats(repo, revision, CHANGE),
+            "change_stats": range_change_stats(repo, revision),
         })
         prev_index = index
         prev_count = count
     return selected
 
 
-def profile_range(repo, command, base, *, cwd=None, env=None):
+def profile_range(repo, command, base, root, *, marker=None, cwd=None, env=None):
     samples = []
-    for _ in range(RUNS):
+    rebuilt = None
+    for index in range(RUNS):
         impl.checkout(repo, base)
         impl.run(command, cwd=cwd, env=env, quiet=True)
+        before = stats.object_snapshot(root, marker=marker) if index == 0 else None
         stats.checkout_with_gap(repo, CHANGE)
         samples.append(stats.profiled(command, cwd=cwd, env=env))
-    return stats.summarize(samples)
-
-
-def actual_rebuilt(repo, command, base, root, *, marker=None, cwd=None, env=None):
-    impl.checkout(repo, base)
-    impl.run(command, cwd=cwd, env=env, quiet=True)
-    before = stats.object_snapshot(root, marker=marker)
-    stats.checkout_with_gap(repo, CHANGE)
-    impl.run(command, cwd=cwd, env=env, quiet=True)
-    after = stats.object_snapshot(root, marker=marker)
-    return len(stats.changed_objects(before, after))
+        if before is not None:
+            after = stats.object_snapshot(root, marker=marker)
+            rebuilt = len(stats.changed_objects(before, after))
+    if rebuilt is None:
+        raise RuntimeError("failed to count rebuilt translation units")
+    return stats.summarize(samples), rebuilt
 
 
 def main():
@@ -196,15 +224,20 @@ def main():
         points = []
         for point in ranges:
             base = point["base"]
-            ninja_profile = profile_range(sdl, ninja_cmd, base)
-            ninja_tus = actual_rebuilt(
-                sdl, ninja_cmd, base, ninja_build, marker="SDL3-static.dir"
+            ninja_profile, ninja_tus = profile_range(
+                sdl,
+                ninja_cmd,
+                base,
+                ninja_build,
+                marker="SDL3-static.dir",
             )
-            c_profile = profile_range(
-                sdl, c_cmd, base, cwd=cproj, env=c_env
-            )
-            c_tus = actual_rebuilt(
-                sdl, c_cmd, base, cproj / "build", cwd=cproj, env=c_env
+            c_profile, c_tus = profile_range(
+                sdl,
+                c_cmd,
+                base,
+                cproj / "build",
+                cwd=cproj,
+                env=c_env,
             )
             if c_tus != ninja_tus:
                 raise RuntimeError(

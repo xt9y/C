@@ -9,10 +9,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
       - name: Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build cmake build-essential git time
+
       - name: Machine
         run: |
           uname -a
@@ -20,7 +22,29 @@ jobs:
           cc --version | head -1
           cmake --version | head -1
           ninja --version
+
       - name: Benchmark and profile SDL3
         env:
           BENCH_JOBS: 2
-        run: python3 benchmarks/sdl3/benchmark.py
+        run: |
+          mkdir -p benchmark-report
+          set -o pipefail
+          python3 benchmarks/sdl3/benchmark.py | tee benchmark-report/benchmark.log
+
+      - name: Build benchmark report
+        run: |
+          python3 benchmarks/sdl3/render_report.py \
+            benchmark-report/benchmark.log \
+            benchmark-report
+
+      - name: Publish benchmark summary
+        run: cat benchmark-report/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdl3-benchmark-${{ github.run_number }}
+          path: benchmark-report/
+          if-no-files-found: warn
+          retention-days: 30

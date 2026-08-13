@@ -16,13 +16,41 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Make integration patch robust
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('tools/apply_perf_v2.py')
+          s = p.read_text()
+          a = s.find("s = replace_once(s,\n'''performance:")
+          b = s.find("\n\n# Keep the two existing compact", a)
+          if a < 0 or b < 0:
+              raise SystemExit('help patch block not found')
+          s = s[:a] + "# help text is patched by the workflow after integration\n" + s[b:]
+          p.write_text(s)
+          PY
       - name: Apply integration patch
         run: python3 tools/apply_perf_v2.py
-      - name: Verify generated source parses
+      - name: Update extended help text
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/cli.c')
+          s = p.read_text()
+          a = s.find('        fputs("\\nchaining:')
+          b = s.find('", stdout);', a)
+          if a < 0 or b < 0:
+              raise SystemExit('help fputs not found')
+          b += len('", stdout);')
+          replacement = '''        fputs("\\nchaining:\\n  c clean build run\\n  c fetch build test\\n\\nperformance:\\n  -j N / -jN / --jobs=N    parallel jobs (default: half available CPUs)\\n  --adaptive-jobs          reduce jobs when the machine is already busy\\n  --unity[=N|auto]         optional fixed or history-balanced unity chunks\\n  --profile                show cache/build timings and slowest files\\n  --fast-debug             use -O1 -g1 for faster debug compiles\\n  --linker=NAME|auto       select mold/lld/another compiler-driver linker\\n  --no-object-cache        disable the persistent global object cache\\n\\nwatch:\\n  c watch [target]         keep the build process warm and rebuild on changes\\n\\nenvironment:\\n  C_JOBS=N                 default parallel job count\\n  C_ADAPTIVE_JOBS=1        adaptive load-aware job limiting\\n  C_UNITY=N|auto           default unity mode\\n  C_OBJECT_CACHE=0         disable global object caching\\n  C_PROFILE=1              enable build timing reports\\n  C_FAST_DEBUG=1           enable faster debug compilation\\n  C_LINKER=NAME|auto       linker selection\\n\\nCommands run left-to-right and stop on the first failure.\\nArguments after `--` belong to `c run` and end the command chain.\\n", stdout);'''
+          p.write_text(s[:a] + replacement + s[b:])
+          PY
+      - name: Verify generated source
         run: |
           python3 -m py_compile tools/apply_perf_v2.py
           grep -q '#include "perf_v2.h"' src/cli.c
           grep -q 'c_unity_auto' include/cbuild.h
+          grep -q 'half available CPUs' src/cli.c
       - name: Remove one-shot integration machinery
         run: git rm .github/workflows/apply-perf-v2.yml tools/apply_perf_v2.py
       - name: Commit integration

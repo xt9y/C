@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+from pathlib import Path
+
+p = Path("src/cli.c")
+s = p.read_text()
+s = s.replace("compiler_perf.linker[0] = '\x00';", "compiler_perf.linker[0] = '\\0';")
+
+start = s.find("static void compiler_cmd_doctor(")
+end = s.find("static int compiler_watch_build_once(", start)
+if start < 0 or end < 0:
+    raise SystemExit("doctor section not found")
+
+doctor = r'''static void compiler_cmd_doctor(const Options *opt) {
+    struct utsname u;
+    uname(&u);
+    printf("c %s\n\n", C_VERSION);
+    printf("Platform   %s %s\n", u.sysname, u.machine);
+    printf("Compiler   %s%s\n", opt->cc, command_exists(opt->cc) ? "" : "  [missing]");
+    printf("Archiver   %s%s\n", compiler_ar(), command_exists(compiler_ar()) ? "" : "  [missing]");
+    printf("Git        %s\n", command_exists("git") ? "ok" : "missing");
+    printf("CPUs       %d\n", compiler_cpu_count());
+    printf("Jobs       %d%s\n", compiler_perf.jobs,
+           compiler_perf.jobs_explicit ? " (explicit)" : " (half CPUs default)");
+    printf("Adaptive   %s\n", compiler_perf.adaptive_jobs ? "on" : "off");
+    printf("Obj cache  %s\n", compiler_perf.object_cache ? "on" : "off");
+    printf("Unity      %s", compiler_perf.unity ? "on" : "off");
+    if (compiler_perf.unity == -1) printf(" (auto)");
+    else if (compiler_perf.unity > 1) printf(" (chunk %d)", compiler_perf.unity);
+    putchar('\n');
+    printf("Fast debug %s\n", compiler_perf.fast_debug ? "on" : "off");
+    const char *linker = compiler_selected_linker();
+    printf("Linker     %s\n",
+           linker ? linker : compiler_perf.linker[0] ? compiler_perf.linker : "system default");
+    char cache[PATH_MAX];
+    cache_root(cache);
+    printf("Cache      %s\n", cache);
+}
+
+'''
+p.write_text(s[:start] + doctor + s[end:])

@@ -1,57 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="670" viewBox="0 0 1000 670" role="img" aria-labelledby="title desc">
-<title id="title">SDL3 build times</title>
-<desc id="desc">Median wall time on the benchmark runner.</desc>
-<style>
-      .bg{fill:#ffffff}.text{fill:#1f2328}.muted{fill:#656d76}.track{fill:#f6f8fa}
-      .cbar{fill:#0969da}.nbar{fill:#8c959f}
-      text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
-      .title{font-size:24px;font-weight:700}.subtitle{font-size:14px}.label{font-size:15px;font-weight:600}
-      .small{font-size:13px}.value{font-size:13px;font-weight:600}
-      @media (prefers-color-scheme: dark){
-        .bg{fill:#0d1117}.text{fill:#e6edf3}.muted{fill:#8b949e}.track{fill:#21262d}
-        .cbar{fill:#2f81f7}.nbar{fill:#6e7681}
-      }
-    </style>
-<rect class="bg" width="100%" height="100%" rx="12"/>
-<text x="34" y="42" class="title text">SDL3 build times</text>
-<text x="34" y="68" class="subtitle muted">Median wall time on the benchmark runner.</text>
-<rect x="720" y="30" width="15" height="15" rx="3" class="cbar"/><text x="743" y="42" class="small text">c</text>
-<rect x="782" y="30" width="15" height="15" rx="3" class="nbar"/><text x="805" y="42" class="small text">CMake + Ninja</text>
-<text x="34" y="130" class="label text">Clean build</text>
-<text x="34" y="162" class="small muted">c</text>
-<rect x="255" y="142" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="142" width="574.39" height="24" rx="6" class="cbar"/>
-<text x="859" y="159" class="value text">38.22 s</text>
-<text x="34" y="196" class="small muted">CMake + Ninja</text>
-<rect x="255" y="176" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="176" width="590.00" height="24" rx="6" class="nbar"/>
-<text x="859" y="193" class="value text">39.26 s</text>
-<text x="34" y="252" class="label text">No changes</text>
-<text x="34" y="284" class="small muted">c</text>
-<rect x="255" y="264" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="264" width="443.02" height="24" rx="6" class="cbar"/>
-<text x="859" y="281" class="value text">17.9 ms</text>
-<text x="34" y="318" class="small muted">CMake + Ninja</text>
-<rect x="255" y="298" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="298" width="590.00" height="24" rx="6" class="nbar"/>
-<text x="859" y="315" class="value text">23.9 ms</text>
-<text x="34" y="374" class="label text">Real 7-commit update</text>
-<text x="34" y="406" class="small muted">c</text>
-<rect x="255" y="386" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="386" width="503.63" height="24" rx="6" class="cbar"/>
-<text x="859" y="403" class="value text">1.10 s</text>
-<text x="34" y="440" class="small muted">CMake + Ninja</text>
-<rect x="255" y="420" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="420" width="590.00" height="24" rx="6" class="nbar"/>
-<text x="859" y="437" class="value text">1.29 s</text>
-<text x="34" y="496" class="label text">Archive only</text>
-<text x="34" y="528" class="small muted">c</text>
-<rect x="255" y="508" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="508" width="314.27" height="24" rx="6" class="cbar"/>
-<text x="859" y="525" class="value text">176.9 ms</text>
-<text x="34" y="562" class="small muted">CMake + Ninja</text>
-<rect x="255" y="542" width="590" height="24" rx="6" class="track"/>
-<rect x="255" y="542" width="590.00" height="24" rx="6" class="nbar"/>
-<text x="859" y="559" class="value text">332.2 ms</text>
-<text x="34" y="644" class="small muted">Each metric pair has its own scale. Lower is better.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="576" viewBox="0 0 900 576">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;fill:#24292f}.label{font-size:14px;font-weight:600}.value{font-size:13px}.title{font-size:22px;font-weight:700}.legend{font-size:13px}</style>
+<text x="30" y="38" class="title">SDL3 build times</text>
+<rect x="610" y="21" width="14" height="14" rx="2" fill="#24292f"/><text x="632" y="33" class="legend">c</text>
+<rect x="676" y="21" width="14" height="14" rx="2" fill="#8c959f"/><text x="698" y="33" class="legend">CMake + Ninja</text>
+<text x="30" y="96" class="label">Clean build</text>
+<rect x="190" y="78" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="78" width="508.25" height="24" rx="4" fill="#24292f"/>
+<text x="724" y="95" class="value">36.48 s</text>
+<rect x="190" y="112" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="112" width="520.00" height="24" rx="4" fill="#8c959f"/>
+<text x="724" y="129" class="value">37.32 s</text>
+<text x="30" y="208" class="label">No changes</text>
+<rect x="190" y="190" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="190" width="440.28" height="24" rx="4" fill="#24292f"/>
+<text x="724" y="207" class="value">15.9 ms</text>
+<rect x="190" y="224" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="224" width="520.00" height="24" rx="4" fill="#8c959f"/>
+<text x="724" y="241" class="value">18.8 ms</text>
+<text x="30" y="320" class="label">Real update</text>
+<rect x="190" y="302" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="302" width="448.63" height="24" rx="4" fill="#24292f"/>
+<text x="724" y="319" class="value">1.02 s</text>
+<rect x="190" y="336" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="336" width="520.00" height="24" rx="4" fill="#8c959f"/>
+<text x="724" y="353" class="value">1.18 s</text>
+<text x="30" y="432" class="label">Archive only</text>
+<rect x="190" y="414" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="414" width="280.96" height="24" rx="4" fill="#24292f"/>
+<text x="724" y="431" class="value">158.7 ms</text>
+<rect x="190" y="448" width="520" height="24" rx="4" fill="#f6f8fa"/>
+<rect x="190" y="448" width="520.00" height="24" rx="4" fill="#8c959f"/>
+<text x="724" y="465" class="value">293.7 ms</text>
+<text x="30" y="556" class="legend">Each metric pair is scaled independently. Lower is better.</text>
 </svg>

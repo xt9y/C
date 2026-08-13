@@ -1,0 +1,999 @@
+{
+  "base": "b07d48821698af08545cb38e293ead99753bfc35",
+  "c": {
+    "archive_only": {
+      "cpu_percent": 93.1896830521962,
+      "fs_inputs": 0,
+      "fs_outputs": 61216,
+      "involuntary_context_switches": 13,
+      "major_faults": 0,
+      "max_rss_kb": 143580,
+      "minor_faults": 12559,
+      "samples": [
+        {
+          "cpu_percent": 93.08895207904865,
+          "fs_inputs": 0,
+          "fs_outputs": 61280,
+          "involuntary_context_switches": 12,
+          "major_faults": 0,
+          "max_rss_kb": 143580,
+          "minor_faults": 12559,
+          "system_s": 0.09,
+          "user_s": 0.06,
+          "voluntary_context_switches": 7,
+          "wall_ms": 161.1362
+        },
+        {
+          "cpu_percent": 93.1896830521962,
+          "fs_inputs": 0,
+          "fs_outputs": 61216,
+          "involuntary_context_switches": 14,
+          "major_faults": 0,
+          "max_rss_kb": 143536,
+          "minor_faults": 12498,
+          "system_s": 0.09,
+          "user_s": 0.06,
+          "voluntary_context_switches": 7,
+          "wall_ms": 160.962024
+        },
+        {
+          "cpu_percent": 90.1076152674636,
+          "fs_inputs": 0,
+          "fs_outputs": 61216,
+          "involuntary_context_switches": 13,
+          "major_faults": 0,
+          "max_rss_kb": 143620,
+          "minor_faults": 12487,
+          "system_s": 0.09,
+          "user_s": 0.05,
+          "voluntary_context_switches": 7,
+          "wall_ms": 155.369776
+        },
+        {
+          "cpu_percent": 95.95405627669577,
+          "fs_inputs": 0,
+          "fs_outputs": 61216,
+          "involuntary_context_switches": 13,
+          "major_faults": 0,
+          "max_rss_kb": 143388,
+          "minor_faults": 12592,
+          "system_s": 0.09,
+          "user_s": 0.06,
+          "voluntary_context_switches": 7,
+          "wall_ms": 156.324814
+        },
+        {
+          "cpu_percent": 94.52513743844706,
+          "fs_inputs": 0,
+          "fs_outputs": 61216,
+          "involuntary_context_switches": 12,
+          "major_faults": 0,
+          "max_rss_kb": 145664,
+          "minor_faults": 12561,
+          "system_s": 0.1,
+          "user_s": 0.05,
+          "voluntary_context_switches": 7,
+          "wall_ms": 158.687947
+        }
+      ],
+      "stability": {
+        "cv_percent": 1.4817082191628925,
+        "max_ms": 161.1362,
+        "median_ms": 158.687947,
+        "min_ms": 155.369776,
+        "stdev_ms": 2.3484505142043277
+      },
+      "system_s": 0.09,
+      "user_s": 0.06,
+      "voluntary_context_switches": 7,
+      "wall_ms": 158.687947
+    },
+    "clean": {
+      "cpu_percent": 199.02212618199536,
+      "fs_inputs": 0,
+      "fs_outputs": 179952,
+      "involuntary_context_switches": 711,
+      "major_faults": 0,
+      "max_rss_kb": 186756,
+      "minor_faults": 3150514,
+      "samples": [
+        {
+          "cpu_percent": 198.88048124975933,
+          "fs_inputs": 0,
+          "fs_outputs": 179952,
+          "involuntary_context_switches": 711,
+          "major_faults": 0,
+          "max_rss_kb": 186756,
+          "minor_faults": 3150514,
+          "system_s": 9.63,
+          "user_s": 62.92,
+          "voluntary_context_switches": 2198,
+          "wall_ms": 36479.195718
+        },
+        {
+          "cpu_percent": 199.42640816392625,
+          "fs_inputs": 0,
+          "fs_outputs": 179952,
+          "involuntary_context_switches": 850,
+          "major_faults": 0,
+          "max_rss_kb": 186320,
+          "minor_faults": 3150870,
+          "system_s": 9.52,
+          "user_s": 62.98,
+          "voluntary_context_switches": 2193,
+          "wall_ms": 36354.262541
+        },
+        {
+          "cpu_percent": 199.02212618199536,
+          "fs_inputs": 0,
+          "fs_outputs": 179952,
+          "involuntary_context_switches": 655,
+          "major_faults": 0,
+          "max_rss_kb": 186964,
+          "minor_faults": 3150125,
+          "system_s": 9.49,
+          "user_s": 63.11,
+          "voluntary_context_switches": 2195,
+          "wall_ms": 36478.356147
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.16109103130825606,
+        "max_ms": 36479.195718,
+        "median_ms": 36478.356147,
+        "min_ms": 36354.262541,
+        "stdev_ms": 58.69717638946406
+      },
+      "system_s": 9.52,
+      "user_s": 62.98,
+      "voluntary_context_switches": 2195,
+      "wall_ms": 36478.356147
+    },
+    "noop": {
+      "cpu_percent": 62.45349804675757,
+      "fs_inputs": 0.0,
+      "fs_outputs": 376.0,
+      "involuntary_context_switches": 0.0,
+      "major_faults": 0.0,
+      "max_rss_kb": 4696.0,
+      "minor_faults": 982.0,
+      "samples": [
+        {
+          "cpu_percent": 79.10639517457318,
+          "fs_inputs": 0,
+          "fs_outputs": 3448,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 6692,
+          "minor_faults": 941,
+          "system_s": 0.03,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 37.923609
+        },
+        {
+          "cpu_percent": 58.02963956688303,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 4684,
+          "minor_faults": 983,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 17.232573
+        },
+        {
+          "cpu_percent": 61.467503452476,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 6572,
+          "minor_faults": 888,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 16.268759
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 4696,
+          "minor_faults": 982,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 15.959249
+        },
+        {
+          "cpu_percent": 61.89248656159385,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 4688,
+          "minor_faults": 982,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 16.15705
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 4696,
+          "minor_faults": 985,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 15.92755
+        },
+        {
+          "cpu_percent": 63.014509531921306,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 6696,
+          "minor_faults": 915,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 15.869361
+        },
+        {
+          "cpu_percent": 63.37963004042353,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 6560,
+          "minor_faults": 889,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 15.77794
+        },
+        {
+          "cpu_percent": 63.35581429929326,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 4696,
+          "minor_faults": 983,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 15.783871
+        },
+        {
+          "cpu_percent": 63.4323565279031,
+          "fs_inputs": 0,
+          "fs_outputs": 376,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 4692,
+          "minor_faults": 982,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 4,
+          "wall_ms": 15.764825
+        }
+      ],
+      "stability": {
+        "cv_percent": 35.94325958645654,
+        "max_ms": 37.923609,
+        "median_ms": 15.9433995,
+        "min_ms": 15.764825,
+        "stdev_ms": 6.565567856445793
+      },
+      "system_s": 0.01,
+      "user_s": 0.0,
+      "voluntary_context_switches": 4.0,
+      "wall_ms": 15.9433995
+    },
+    "output": {
+      "archive_bytes": 15572434,
+      "archive_path": "debug/SDL3.a",
+      "object_bytes": 15460240,
+      "object_count": 219
+    },
+    "real_update": {
+      "cpu_percent": 176.09949428891878,
+      "fs_inputs": 0,
+      "fs_outputs": 66704,
+      "involuntary_context_switches": 25,
+      "major_faults": 0,
+      "max_rss_kb": 144440,
+      "minor_faults": 73464,
+      "samples": [
+        {
+          "cpu_percent": 176.89852382842847,
+          "fs_inputs": 0,
+          "fs_outputs": 66672,
+          "involuntary_context_switches": 28,
+          "major_faults": 0,
+          "max_rss_kb": 144424,
+          "minor_faults": 73464,
+          "system_s": 0.3,
+          "user_s": 1.48,
+          "voluntary_context_switches": 47,
+          "wall_ms": 1006.226599
+        },
+        {
+          "cpu_percent": 175.9738181945648,
+          "fs_inputs": 0,
+          "fs_outputs": 66704,
+          "involuntary_context_switches": 23,
+          "major_faults": 0,
+          "max_rss_kb": 144448,
+          "minor_faults": 73494,
+          "system_s": 0.3,
+          "user_s": 1.49,
+          "voluntary_context_switches": 47,
+          "wall_ms": 1017.196773
+        },
+        {
+          "cpu_percent": 176.09949428891878,
+          "fs_inputs": 0,
+          "fs_outputs": 66704,
+          "involuntary_context_switches": 26,
+          "major_faults": 0,
+          "max_rss_kb": 144408,
+          "minor_faults": 73372,
+          "system_s": 0.27,
+          "user_s": 1.53,
+          "voluntary_context_switches": 47,
+          "wall_ms": 1022.149443
+        },
+        {
+          "cpu_percent": 175.12444712154408,
+          "fs_inputs": 0,
+          "fs_outputs": 66704,
+          "involuntary_context_switches": 24,
+          "major_faults": 0,
+          "max_rss_kb": 144508,
+          "minor_faults": 73471,
+          "system_s": 0.29,
+          "user_s": 1.49,
+          "voluntary_context_switches": 47,
+          "wall_ms": 1016.420054
+        },
+        {
+          "cpu_percent": 176.43508625924323,
+          "fs_inputs": 0,
+          "fs_outputs": 66704,
+          "involuntary_context_switches": 25,
+          "major_faults": 0,
+          "max_rss_kb": 144440,
+          "minor_faults": 73432,
+          "system_s": 0.27,
+          "user_s": 1.5,
+          "voluntary_context_switches": 47,
+          "wall_ms": 1003.201822
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.7048095451970772,
+        "max_ms": 1022.149443,
+        "median_ms": 1016.420054,
+        "min_ms": 1003.201822,
+        "stdev_ms": 7.139995132996719
+      },
+      "system_s": 0.29,
+      "user_s": 1.49,
+      "voluntary_context_switches": 47,
+      "wall_ms": 1016.420054
+    },
+    "rebuilt_objects": [
+      ".objs/42feeec58a303512/SDL_gamepad.c-59704db270c6fc11.o",
+      ".objs/42feeec58a303512/SDL_hidapi.c-e9474a8112d45d8c.o",
+      ".objs/42feeec58a303512/SDL_joystick.c-fee864d6ef80e5d2.o",
+      ".objs/42feeec58a303512/SDL_sysjoystick.c-a2f6ee103e7c2388.o"
+    ],
+    "translation_units_rebuilt": 4
+  },
+  "change": "eba3c7ae0ad85c13051179d196e5187ccb96cf6a",
+  "change_file": "src/joystick/SDL_gamepad.c",
+  "change_stats": {
+    "additions": 101,
+    "commits": 7,
+    "deletions": 85,
+    "files": [
+      {
+        "additions": 26,
+        "deletions": 0,
+        "path": "docs/README-gdk.md"
+      },
+      {
+        "additions": 13,
+        "deletions": 2,
+        "path": "src/core/linux/SDL_udev.c"
+      },
+      {
+        "additions": 5,
+        "deletions": 2,
+        "path": "src/joystick/SDL_gamepad.c"
+      },
+      {
+        "additions": 2,
+        "deletions": 1,
+        "path": "src/joystick/SDL_joystick.c"
+      },
+      {
+        "additions": 43,
+        "deletions": 76,
+        "path": "src/joystick/hidapi/SDL_hidapi_gamesir.c"
+      },
+      {
+        "additions": 9,
+        "deletions": 2,
+        "path": "src/joystick/hidapi/SDL_hidapi_zuiki.c"
+      },
+      {
+        "additions": 2,
+        "deletions": 0,
+        "path": "src/joystick/usb_ids.h"
+      },
+      {
+        "additions": 0,
+        "deletions": 1,
+        "path": "src/video/wayland/SDL_waylanddatamanager.h"
+      },
+      {
+        "additions": 1,
+        "deletions": 1,
+        "path": "src/video/wayland/SDL_waylandevents.c"
+      }
+    ],
+    "files_changed": 9
+  },
+  "cmake_ninja": {
+    "archive_only": {
+      "cpu_percent": 95.47964282115896,
+      "fs_inputs": 0,
+      "fs_outputs": 121640,
+      "involuntary_context_switches": 24,
+      "major_faults": 0,
+      "max_rss_kb": 145104,
+      "minor_faults": 25050,
+      "samples": [
+        {
+          "cpu_percent": 95.33575796680752,
+          "fs_inputs": 0,
+          "fs_outputs": 121640,
+          "involuntary_context_switches": 23,
+          "major_faults": 0,
+          "max_rss_kb": 143576,
+          "minor_faults": 25050,
+          "system_s": 0.17,
+          "user_s": 0.11,
+          "voluntary_context_switches": 22,
+          "wall_ms": 293.698824
+        },
+        {
+          "cpu_percent": 94.14683669217754,
+          "fs_inputs": 0,
+          "fs_outputs": 121640,
+          "involuntary_context_switches": 24,
+          "major_faults": 0,
+          "max_rss_kb": 145340,
+          "minor_faults": 24971,
+          "system_s": 0.18,
+          "user_s": 0.1,
+          "voluntary_context_switches": 22,
+          "wall_ms": 297.407762
+        },
+        {
+          "cpu_percent": 96.28228116216951,
+          "fs_inputs": 0,
+          "fs_outputs": 121640,
+          "involuntary_context_switches": 24,
+          "major_faults": 0,
+          "max_rss_kb": 143656,
+          "minor_faults": 25051,
+          "system_s": 0.16,
+          "user_s": 0.12,
+          "voluntary_context_switches": 22,
+          "wall_ms": 290.811556
+        },
+        {
+          "cpu_percent": 95.47964282115896,
+          "fs_inputs": 0,
+          "fs_outputs": 121640,
+          "involuntary_context_switches": 22,
+          "major_faults": 0,
+          "max_rss_kb": 145696,
+          "minor_faults": 25050,
+          "system_s": 0.16,
+          "user_s": 0.12,
+          "voluntary_context_switches": 22,
+          "wall_ms": 293.256229
+        },
+        {
+          "cpu_percent": 97.49505484910415,
+          "fs_inputs": 0,
+          "fs_outputs": 121640,
+          "involuntary_context_switches": 24,
+          "major_faults": 0,
+          "max_rss_kb": 145104,
+          "minor_faults": 24912,
+          "system_s": 0.17,
+          "user_s": 0.12,
+          "voluntary_context_switches": 22,
+          "wall_ms": 297.450984
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.8716555501983759,
+        "max_ms": 297.450984,
+        "median_ms": 293.698824,
+        "min_ms": 290.811556,
+        "stdev_ms": 2.5672441280972076
+      },
+      "system_s": 0.17,
+      "user_s": 0.12,
+      "voluntary_context_switches": 22,
+      "wall_ms": 293.698824
+    },
+    "clean": {
+      "cpu_percent": 198.8214254184596,
+      "fs_inputs": 0,
+      "fs_outputs": 242680,
+      "involuntary_context_switches": 770,
+      "major_faults": 0,
+      "max_rss_kb": 186928,
+      "minor_faults": 3180135,
+      "samples": [
+        {
+          "cpu_percent": 198.8214254184596,
+          "fs_inputs": 0,
+          "fs_outputs": 242680,
+          "involuntary_context_switches": 770,
+          "major_faults": 0,
+          "max_rss_kb": 187072,
+          "minor_faults": 3179757,
+          "system_s": 9.54,
+          "user_s": 64.81,
+          "voluntary_context_switches": 2648,
+          "wall_ms": 37395.36614
+        },
+        {
+          "cpu_percent": 198.7202397800858,
+          "fs_inputs": 0,
+          "fs_outputs": 242680,
+          "involuntary_context_switches": 925,
+          "major_faults": 0,
+          "max_rss_kb": 186928,
+          "minor_faults": 3180232,
+          "system_s": 9.39,
+          "user_s": 64.77,
+          "voluntary_context_switches": 2642,
+          "wall_ms": 37318.79555
+        },
+        {
+          "cpu_percent": 198.97445624843303,
+          "fs_inputs": 0,
+          "fs_outputs": 242672,
+          "involuntary_context_switches": 664,
+          "major_faults": 0,
+          "max_rss_kb": 186856,
+          "minor_faults": 3180135,
+          "system_s": 9.54,
+          "user_s": 64.72,
+          "voluntary_context_switches": 2648,
+          "wall_ms": 37321.373507
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.0950690181069105,
+        "max_ms": 37395.36614,
+        "median_ms": 37321.373507,
+        "min_ms": 37318.79555,
+        "stdev_ms": 35.50369441420334
+      },
+      "system_s": 9.54,
+      "user_s": 64.77,
+      "voluntary_context_switches": 2648,
+      "wall_ms": 37321.373507
+    },
+    "noop": {
+      "cpu_percent": 0.0,
+      "fs_inputs": 0.0,
+      "fs_outputs": 0.0,
+      "involuntary_context_switches": 0.0,
+      "major_faults": 0.0,
+      "max_rss_kb": 9778.0,
+      "minor_faults": 1763.5,
+      "samples": [
+        {
+          "cpu_percent": 49.213746423021874,
+          "fs_inputs": 0,
+          "fs_outputs": 48,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 9780,
+          "minor_faults": 1764,
+          "system_s": 0.0,
+          "user_s": 0.01,
+          "voluntary_context_switches": 10,
+          "wall_ms": 20.319526
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 9784,
+          "minor_faults": 1765,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 10,
+          "wall_ms": 18.682009
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 9780,
+          "minor_faults": 1766,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 10,
+          "wall_ms": 18.964007
+        },
+        {
+          "cpu_percent": 53.50691833752721,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 9788,
+          "minor_faults": 1764,
+          "system_s": 0.0,
+          "user_s": 0.01,
+          "voluntary_context_switches": 10,
+          "wall_ms": 18.689172
+        },
+        {
+          "cpu_percent": 53.35155822562321,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 9724,
+          "minor_faults": 1762,
+          "system_s": 0.0,
+          "user_s": 0.01,
+          "voluntary_context_switches": 10,
+          "wall_ms": 18.743595
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 9772,
+          "minor_faults": 1763,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 10,
+          "wall_ms": 18.458009
+        },
+        {
+          "cpu_percent": 54.16364907436761,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 9776,
+          "minor_faults": 1762,
+          "system_s": 0.01,
+          "user_s": 0.0,
+          "voluntary_context_switches": 10,
+          "wall_ms": 18.462567
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 9724,
+          "minor_faults": 1763,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 10,
+          "wall_ms": 19.096164
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 9788,
+          "minor_faults": 1766,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 10,
+          "wall_ms": 19.036083
+        },
+        {
+          "cpu_percent": 0.0,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 9724,
+          "minor_faults": 1762,
+          "system_s": 0.0,
+          "user_s": 0.0,
+          "voluntary_context_switches": 10,
+          "wall_ms": 18.916448
+        }
+      ],
+      "stability": {
+        "cv_percent": 2.675016019601983,
+        "max_ms": 20.319526,
+        "median_ms": 18.8300215,
+        "min_ms": 18.458009,
+        "stdev_ms": 0.5065613100932601
+      },
+      "system_s": 0.0,
+      "user_s": 0.0,
+      "voluntary_context_switches": 10.0,
+      "wall_ms": 18.8300215
+    },
+    "output": {
+      "archive_bytes": 15566838,
+      "archive_path": "libSDL3.a",
+      "object_bytes": 15459992,
+      "object_count": 219
+    },
+    "real_update": {
+      "cpu_percent": 165.52017588958202,
+      "fs_inputs": 0,
+      "fs_outputs": 127136,
+      "involuntary_context_switches": 36,
+      "major_faults": 0,
+      "max_rss_kb": 145384,
+      "minor_faults": 86014,
+      "samples": [
+        {
+          "cpu_percent": 165.52017588958202,
+          "fs_inputs": 0,
+          "fs_outputs": 127144,
+          "involuntary_context_switches": 38,
+          "major_faults": 0,
+          "max_rss_kb": 143636,
+          "minor_faults": 86084,
+          "system_s": 0.36,
+          "user_s": 1.59,
+          "voluntary_context_switches": 70,
+          "wall_ms": 1178.104113
+        },
+        {
+          "cpu_percent": 166.02713496749203,
+          "fs_inputs": 0,
+          "fs_outputs": 127136,
+          "involuntary_context_switches": 36,
+          "major_faults": 0,
+          "max_rss_kb": 145412,
+          "minor_faults": 86014,
+          "system_s": 0.36,
+          "user_s": 1.59,
+          "voluntary_context_switches": 70,
+          "wall_ms": 1174.506806
+        },
+        {
+          "cpu_percent": 166.6572495550143,
+          "fs_inputs": 0,
+          "fs_outputs": 127136,
+          "involuntary_context_switches": 36,
+          "major_faults": 0,
+          "max_rss_kb": 143492,
+          "minor_faults": 86031,
+          "system_s": 0.34,
+          "user_s": 1.65,
+          "voluntary_context_switches": 70,
+          "wall_ms": 1194.067468
+        },
+        {
+          "cpu_percent": 164.8206882683232,
+          "fs_inputs": 0,
+          "fs_outputs": 127136,
+          "involuntary_context_switches": 36,
+          "major_faults": 0,
+          "max_rss_kb": 145472,
+          "minor_faults": 85973,
+          "system_s": 0.36,
+          "user_s": 1.58,
+          "voluntary_context_switches": 70,
+          "wall_ms": 1177.036706
+        },
+        {
+          "cpu_percent": 165.50214345858535,
+          "fs_inputs": 0,
+          "fs_outputs": 127136,
+          "involuntary_context_switches": 39,
+          "major_faults": 0,
+          "max_rss_kb": 145384,
+          "minor_faults": 86008,
+          "system_s": 0.37,
+          "user_s": 1.6,
+          "voluntary_context_switches": 70,
+          "wall_ms": 1190.31691
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.6630196434498571,
+        "max_ms": 1194.067468,
+        "median_ms": 1178.104113,
+        "min_ms": 1174.506806,
+        "stdev_ms": 7.842238779960208
+      },
+      "system_s": 0.36,
+      "user_s": 1.59,
+      "voluntary_context_switches": 70,
+      "wall_ms": 1178.104113
+    },
+    "rebuilt_objects": [
+      "CMakeFiles/SDL3-static.dir/src/hidapi/SDL_hidapi.c.o",
+      "CMakeFiles/SDL3-static.dir/src/joystick/SDL_gamepad.c.o",
+      "CMakeFiles/SDL3-static.dir/src/joystick/SDL_joystick.c.o",
+      "CMakeFiles/SDL3-static.dir/src/joystick/linux/SDL_sysjoystick.c.o"
+    ],
+    "translation_units_rebuilt": 4
+  },
+  "configuration": {
+    "c_fresh_build_script_cache": {
+      "cpu_percent": 93.93047524754628,
+      "fs_inputs": 0,
+      "fs_outputs": 3776,
+      "involuntary_context_switches": 2,
+      "major_faults": 0,
+      "max_rss_kb": 36948,
+      "minor_faults": 7225,
+      "samples": [
+        {
+          "cpu_percent": 94.29018298612944,
+          "fs_inputs": 0,
+          "fs_outputs": 3776,
+          "involuntary_context_switches": 4,
+          "major_faults": 0,
+          "max_rss_kb": 36792,
+          "minor_faults": 7090,
+          "system_s": 0.04,
+          "user_s": 0.17,
+          "voluntary_context_switches": 19,
+          "wall_ms": 222.716717
+        },
+        {
+          "cpu_percent": 93.78864343329035,
+          "fs_inputs": 0,
+          "fs_outputs": 3776,
+          "involuntary_context_switches": 2,
+          "major_faults": 0,
+          "max_rss_kb": 36948,
+          "minor_faults": 7225,
+          "system_s": 0.04,
+          "user_s": 0.17,
+          "voluntary_context_switches": 19,
+          "wall_ms": 223.907706
+        },
+        {
+          "cpu_percent": 93.93047524754628,
+          "fs_inputs": 0,
+          "fs_outputs": 3776,
+          "involuntary_context_switches": 2,
+          "major_faults": 0,
+          "max_rss_kb": 36976,
+          "minor_faults": 7237,
+          "system_s": 0.05,
+          "user_s": 0.16,
+          "voluntary_context_switches": 19,
+          "wall_ms": 223.569613
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.22432218634523302,
+        "max_ms": 223.907706,
+        "median_ms": 223.569613,
+        "min_ms": 222.716717,
+        "stdev_ms": 0.501131304770186
+      },
+      "system_s": 0.04,
+      "user_s": 0.17,
+      "voluntary_context_switches": 19,
+      "wall_ms": 223.569613
+    },
+    "cmake_configure": {
+      "cpu_percent": 101.10742204804318,
+      "fs_inputs": 0,
+      "fs_outputs": 39640,
+      "involuntary_context_switches": 547,
+      "major_faults": 0,
+      "max_rss_kb": 140172,
+      "minor_faults": 1172375,
+      "samples": [
+        {
+          "cpu_percent": 101.06772068307966,
+          "fs_inputs": 0,
+          "fs_outputs": 39640,
+          "involuntary_context_switches": 495,
+          "major_faults": 0,
+          "max_rss_kb": 140172,
+          "minor_faults": 1173631,
+          "system_s": 5.29,
+          "user_s": 8.9,
+          "voluntary_context_switches": 10628,
+          "wall_ms": 14040.091044
+        },
+        {
+          "cpu_percent": 101.10742204804318,
+          "fs_inputs": 0,
+          "fs_outputs": 39640,
+          "involuntary_context_switches": 559,
+          "major_faults": 0,
+          "max_rss_kb": 142332,
+          "minor_faults": 1171293,
+          "system_s": 5.32,
+          "user_s": 8.87,
+          "voluntary_context_switches": 10625,
+          "wall_ms": 14034.577989
+        },
+        {
+          "cpu_percent": 101.11052469815411,
+          "fs_inputs": 0,
+          "fs_outputs": 39640,
+          "involuntary_context_switches": 547,
+          "major_faults": 0,
+          "max_rss_kb": 140128,
+          "minor_faults": 1172375,
+          "system_s": 5.24,
+          "user_s": 8.96,
+          "voluntary_context_switches": 10600,
+          "wall_ms": 14044.037495
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.027632188845602278,
+        "max_ms": 14044.037495,
+        "median_ms": 14040.091044,
+        "min_ms": 14034.577989,
+        "stdev_ms": 3.8794401757139916
+      },
+      "system_s": 5.29,
+      "user_s": 8.9,
+      "voluntary_context_switches": 10625,
+      "wall_ms": 14040.091044
+    }
+  },
+  "jobs": 2,
+  "machine": {
+    "cmake": "cmake version 3.31.6",
+    "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "cpu_count": 4,
+    "cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "date": "2026-08-13",
+    "ninja": "1.13.2",
+    "platform": "Linux runnervmvrwv9 6.17.0-1020-azure #20~24.04.1-Ubuntu SMP Fri Jun 19 20:09:14 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux"
+  },
+  "revision_override": "benchmark",
+  "shared_semantic_flags": 15,
+  "source_count": 219
+}

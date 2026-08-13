@@ -56,15 +56,13 @@ Docs (Thanks to AI): https://xt9y.de/c.html
 
 Real SDL3 static debug build, 219 translation units, 2 build jobs on a 4-vCPU GitHub Actions runner.
 
-| Build | `c` | CMake + Ninja |
-| --- | ---: | ---: |
-| Clean build | **38.22 s** | 39.26 s |
-| No changes | **17.9 ms** | 23.9 ms |
-| Real 7-commit update | **1.10 s** | 1.29 s |
-| Archive only | **176.9 ms** | 332.2 ms |
-| TUs rebuilt | 4 / 219 | 4 / 219 |
+![SDL3 build-time benchmark](benchmarks/sdl3/timings.svg)
 
-The clean builds are close. On the real 7-commit update, both systems rebuild the same 4 translation units and `c` finishes about 14.6% sooner on this runner.
+- Clean: **38.22 s** with `c`, 39.26 s with CMake + Ninja.
+- Real 7-commit update: **1.10 s** with `c`, 1.29 s with CMake + Ninja.
+- Both rebuild the same **4 / 219** translation units.
+
+The clean builds are close. The real update is the more useful comparison because both systems do the same incremental compile work.
 
 Full results, resource usage, stability, setup cost, methodology and raw samples: [BENCHMARK.md](BENCHMARK.md)
 

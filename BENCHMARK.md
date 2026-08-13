@@ -29,6 +29,8 @@ Both build systems rebuild exactly the same 4 translation units:
 
 ## Build times
 
+![SDL3 build-time benchmark](benchmarks/sdl3/timings.svg)
+
 | Build | `c` | CMake + Ninja |
 | --- | ---: | ---: |
 | Clean build | **38.22 s** | 39.26 s |
@@ -42,6 +44,8 @@ On this runner, `c` used 2.65% less wall time for the clean build, 24.91% less f
 The clean result is close. The more interesting result is the real update: both systems rebuilt the same 4 translation units, so the 1.10 s vs 1.29 s comparison is doing the same incremental compile work. The archive-only difference is larger, but it is only one part of a build.
 
 ## Real update resources
+
+![SDL3 real-update resource benchmark](benchmarks/sdl3/resources.svg)
 
 | Metric | `c` | CMake + Ninja |
 | --- | ---: | ---: |

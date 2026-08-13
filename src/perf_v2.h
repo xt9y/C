@@ -1,7 +1,6 @@
 #ifndef C_PERF_V2_H
 #define C_PERF_V2_H
 
-#include <math.h>
 #include <sys/ioctl.h>
 #ifdef __linux__
 #include <linux/fs.h>
@@ -13,14 +12,7 @@
 #include <sys/clonefile.h>
 #endif
 
-/*
- * Advanced performance helpers for cli.c.
- *
- * This header is included after main.c and CompilerPerfOptions are defined, so
- * it can use the internal path/cache/vector helpers without making any of this
- * part of the public build.c API.
- */
-
+/* Internal helpers used by src/cli.c. Nothing here is part of cbuild.h. */
 static bool compiler_read_depfile(const char *path, StrVec *deps);
 static bool compiler_copy_atomic(const char *from, const char *to);
 
@@ -36,12 +28,29 @@ static int compiler_default_jobs(void) {
     return n > 0 ? n : 1;
 }
 
+static double compiler_system_load(void) {
+#ifdef __linux__
+    FILE *f = fopen("/proc/loadavg", "r");
+    if (!f) return 0.0;
+    double load = 0.0;
+    bool ok = fscanf(f, "%lf", &load) == 1;
+    fclose(f);
+    return ok ? load : 0.0;
+#elif defined(__APPLE__)
+    double load = 0.0;
+    return getloadavg(&load, 1) == 1 ? load : 0.0;
+#else
+    return 0.0;
+#endif
+}
+
 static int compiler_adaptive_jobs(int requested) {
     if (!compiler_perf.adaptive_jobs || requested <= 1) return requested > 0 ? requested : 1;
-    double load = 0.0;
-    if (getloadavg(&load, 1) != 1) return requested;
+    double load = compiler_system_load();
+    if (load <= 0.0) return requested;
     int cpus = compiler_perf_cpu_count();
-    int busy = (int)ceil(load);
+    int busy = (int)load;
+    if ((double)busy < load) ++busy;
     int free_cpus = cpus - busy;
     if (free_cpus < 1) free_cpus = 1;
     int adaptive = free_cpus / 2;
@@ -67,18 +76,19 @@ static void compiler_abs_path(const char *path, char out[PATH_MAX]) {
 }
 
 static void compiler_perf_cache_path(const char *kind, const char *path, const char *suffix, char out[PATH_MAX]) {
-    char absolute[PATH_MAX], cache[PATH_MAX], perf[PATH_MAX], root[PATH_MAX], shard[3], key[17], name[64];
+    char absolute[PATH_MAX], cache[PATH_MAX], perf[PATH_MAX], root[PATH_MAX], shard_dir[PATH_MAX];
+    char shard[3], key[17], name[64];
     compiler_abs_path(path, absolute);
     hash_u64_hex(hash_string(absolute), key);
     cache_root(cache);
     path_join(perf, cache, "perf");
     path_join(root, perf, kind);
     shard[0] = key[0]; shard[1] = key[1]; shard[2] = '\0';
-    path_join(root, root, shard);
-    mkdir_p(root);
+    path_join(shard_dir, root, shard);
+    mkdir_p(shard_dir);
     int n = snprintf(name, sizeof(name), "%s%s", key, suffix ? suffix : "");
     if (n < 0 || n >= (int)sizeof(name)) die("performance cache name too long");
-    path_join(out, root, name);
+    path_join(out, shard_dir, name);
 }
 
 static bool compiler_perf_stat(const char *path, time_t *sec, long *nsec, off_t *size) {
@@ -217,7 +227,7 @@ typedef struct CompilerProfileRecord {
     bool cache_hit;
 } CompilerProfileRecord;
 
-#define COMPILER_PROFILE_MAX 4096
+#define COMPILER_PROFILE_MAX 512
 static CompilerProfileRecord compiler_profile_records[COMPILER_PROFILE_MAX];
 static size_t compiler_profile_count = 0;
 static size_t compiler_profile_cache_hits = 0;
@@ -308,7 +318,6 @@ static void compiler_profile_report(const char *target, double link_ms) {
     if (!compiler_perf.profile) return;
     CompilerProfileRecord copy[COMPILER_PROFILE_MAX];
     size_t n = compiler_profile_count;
-    if (n > COMPILER_PROFILE_MAX) n = COMPILER_PROFILE_MAX;
     memcpy(copy, compiler_profile_records, n * sizeof(copy[0]));
     qsort(copy, n, sizeof(copy[0]), compiler_profile_record_cmp);
     fprintf(stderr, "\nprofile [%s]\n", target ? target : "build");

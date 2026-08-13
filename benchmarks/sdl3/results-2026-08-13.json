@@ -1,0 +1,35 @@
+{
+  "date": "2026-08-13",
+  "environment": {
+    "os": "Ubuntu 24.04 GitHub Actions",
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "cpu_count": 4,
+    "jobs": 2,
+    "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "cmake": "3.31.6",
+    "ninja": "1.13.2"
+  },
+  "sdl3": {
+    "base": "b340ddcd7b44511f7b49005ba4a91a3c9907f77e",
+    "change": "b640b804a8cfe9f998ac82650a32c5e6e6cd4571",
+    "change_file": "src/core/linux/SDL_evdev.c",
+    "translation_units": 219,
+    "precompiled_headers": false
+  },
+  "c": {
+    "cold_ms": 36484.21526,
+    "noop_ms": 14.5494285,
+    "real_commit_ms": 508.712779,
+    "cold_samples_ms": [36783.355467, 36484.21526, 36472.506768],
+    "noop_samples_ms": [36.196511, 15.134223, 14.592149, 14.493615, 14.666227, 14.538638, 14.449743, 14.560219, 14.307927, 14.137457],
+    "real_commit_samples_ms": [505.528289, 515.303213, 508.712779, 507.427363, 508.790942]
+  },
+  "cmake_ninja": {
+    "cold_ms": 37407.511177,
+    "noop_ms": 18.3841525,
+    "real_commit_ms": 865.338842,
+    "cold_samples_ms": [37413.735756, 37356.781424, 37407.511177],
+    "noop_samples_ms": [20.164001, 18.815038, 19.02435, 18.446389, 18.206229, 18.307178, 18.321916, 19.132191, 18.195229, 17.882324],
+    "real_commit_samples_ms": [865.338842, 867.202772, 861.024447, 854.870599, 866.978365]
+  }
+}

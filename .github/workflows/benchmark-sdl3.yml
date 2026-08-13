@@ -12,7 +12,7 @@ jobs:
       - name: Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build cmake build-essential git
+          sudo apt-get install -y ninja-build cmake build-essential git time
       - name: Machine
         run: |
           uname -a
@@ -20,7 +20,7 @@ jobs:
           cc --version | head -1
           cmake --version | head -1
           ninja --version
-      - name: Benchmark SDL3
+      - name: Benchmark and profile SDL3
         env:
           BENCH_JOBS: 2
         run: python3 benchmarks/sdl3/benchmark.py

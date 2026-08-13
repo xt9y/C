@@ -1,36 +1,167 @@
 {
   "date": "2026-08-13",
-  "environment": {
+  "machine": {
     "os": "Ubuntu 24.04 GitHub Actions",
-    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
-    "cpu_count": 4,
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "vcpus": 4,
     "jobs": 2,
-    "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "compiler": "GCC 13.3.0",
     "cmake": "3.31.6",
     "ninja": "1.13.2"
   },
   "sdl3": {
     "base": "b07d48821698af08545cb38e293ead99753bfc35",
     "change": "eba3c7ae0ad85c13051179d196e5187ccb96cf6a",
-    "commit_count": 7,
-    "changed_file_count": 9,
+    "commits": 7,
+    "files_changed": 9,
+    "additions": 101,
+    "deletions": 85,
     "translation_units": 219,
-    "precompiled_headers": false
+    "revision_override": "benchmark",
+    "changed_files": [
+      "docs/README-gdk.md",
+      "src/core/linux/SDL_udev.c",
+      "src/joystick/SDL_gamepad.c",
+      "src/joystick/SDL_joystick.c",
+      "src/joystick/hidapi/SDL_hidapi_gamesir.c",
+      "src/joystick/hidapi/SDL_hidapi_zuiki.c",
+      "src/joystick/usb_ids.h",
+      "src/video/wayland/SDL_waylanddatamanager.h",
+      "src/video/wayland/SDL_waylandevents.c"
+    ]
   },
   "c": {
-    "cold_ms": 34574.517487,
-    "noop_ms": 10.8899695,
-    "real_commit_ms": 923.267915,
-    "cold_samples_ms": [34678.549205, 34489.238189, 34574.517487],
-    "noop_samples_ms": [21.103657, 91.060474, 26.396509, 11.324713, 10.337026, 10.431017, 33.338765, 10.455226, 10.305992, 10.445094],
-    "real_commit_samples_ms": [917.729544, 921.871825, 937.692975, 923.267915, 923.3426]
+    "clean": {
+      "wall_ms": 38217.136672,
+      "wall_samples_ms": [38217.136672, 37858.939443, 38463.634161],
+      "user_s": 65.19,
+      "system_s": 10.85,
+      "cpu_percent": 198.7072,
+      "max_rss_kb": 188864,
+      "fs_inputs": 0,
+      "fs_outputs": 179952,
+      "major_faults": 3,
+      "minor_faults": 3150767,
+      "voluntary_context_switches": 2211,
+      "involuntary_context_switches": 670,
+      "stdev_ms": 248.2655,
+      "cv_percent": 0.6503
+    },
+    "noop": {
+      "wall_ms": 17.9138715,
+      "wall_samples_ms": [38.536794, 18.653724, 18.157114, 17.9034, 17.921348, 18.003442, 17.693674, 17.743879, 17.855338, 17.906395],
+      "max_rss_kb": 4696,
+      "fs_outputs": 376,
+      "cv_percent": 30.8009
+    },
+    "real_update": {
+      "wall_ms": 1097.915341,
+      "wall_samples_ms": [1116.800528, 1101.674898, 1097.915341, 1081.46542, 1064.85691],
+      "user_s": 1.60,
+      "system_s": 0.33,
+      "cpu_percent": 175.6104,
+      "max_rss_kb": 144400,
+      "fs_inputs": 0,
+      "fs_outputs": 66704,
+      "major_faults": 0,
+      "minor_faults": 73501,
+      "voluntary_context_switches": 47,
+      "involuntary_context_switches": 30,
+      "stdev_ms": 17.8321,
+      "cv_percent": 1.6322,
+      "translation_units_rebuilt": 4
+    },
+    "archive_only": {
+      "wall_ms": 176.92396,
+      "wall_samples_ms": [179.94737, 176.582854, 179.436414, 176.92396, 173.642123],
+      "user_s": 0.07,
+      "system_s": 0.10,
+      "cpu_percent": 94.7411,
+      "max_rss_kb": 143568,
+      "fs_outputs": 61216,
+      "cv_percent": 1.2764
+    },
+    "output": {
+      "objects": 219,
+      "object_bytes": 15460240,
+      "archive_bytes": 15572434
+    }
   },
   "cmake_ninja": {
-    "cold_ms": 35857.360482,
-    "noop_ms": 14.2349395,
-    "real_commit_ms": 1557.407728,
-    "cold_samples_ms": [35857.360482, 35900.561549, 35522.319161],
-    "noop_samples_ms": [16.397813, 15.338413, 14.782078, 14.562749, 14.2748, 14.173201, 14.195079, 14.165303, 14.003222, 13.943673],
-    "real_commit_samples_ms": [1557.407728, 1556.571722, 1588.22926, 1560.804871, 1550.016398]
+    "clean": {
+      "wall_ms": 39255.624528,
+      "wall_samples_ms": [38779.860851, 39280.380151, 39255.624528],
+      "user_s": 66.98,
+      "system_s": 10.96,
+      "cpu_percent": 198.9288,
+      "max_rss_kb": 187224,
+      "fs_inputs": 0,
+      "fs_outputs": 242680,
+      "major_faults": 0,
+      "minor_faults": 3180442,
+      "voluntary_context_switches": 2651,
+      "involuntary_context_switches": 671,
+      "stdev_ms": 230.3339,
+      "cv_percent": 0.5890
+    },
+    "noop": {
+      "wall_ms": 23.8569285,
+      "wall_samples_ms": [24.587603, 24.88415, 22.545738, 23.681904, 23.210552, 23.648544, 24.031953, 24.105853, 24.436423, 23.584256],
+      "max_rss_kb": 9776,
+      "fs_outputs": 0,
+      "cv_percent": 2.7472
+    },
+    "real_update": {
+      "wall_ms": 1286.21241,
+      "wall_samples_ms": [1291.02708, 1288.113871, 1286.21241, 1273.519606, 1261.688814],
+      "user_s": 1.69,
+      "system_s": 0.41,
+      "cpu_percent": 164.5817,
+      "max_rss_kb": 143512,
+      "fs_inputs": 0,
+      "fs_outputs": 127136,
+      "major_faults": 0,
+      "minor_faults": 86048,
+      "voluntary_context_switches": 70,
+      "involuntary_context_switches": 40,
+      "stdev_ms": 10.9841,
+      "cv_percent": 0.8581,
+      "translation_units_rebuilt": 4
+    },
+    "archive_only": {
+      "wall_ms": 332.152695,
+      "wall_samples_ms": [330.434899, 332.152695, 337.390095, 335.865112, 330.176659],
+      "user_s": 0.12,
+      "system_s": 0.20,
+      "cpu_percent": 96.3412,
+      "max_rss_kb": 143620,
+      "fs_outputs": 121640,
+      "cv_percent": 0.8754
+    },
+    "output": {
+      "objects": 219,
+      "object_bytes": 15459992,
+      "archive_bytes": 15566838
+    }
+  },
+  "configuration": {
+    "c_fresh_build_script_cache": {
+      "wall_ms": 228.598441,
+      "wall_samples_ms": [226.37981, 228.769209, 228.598441],
+      "user_s": 0.16,
+      "system_s": 0.05,
+      "max_rss_kb": 37092,
+      "fs_outputs": 3776,
+      "cv_percent": 0.4775
+    },
+    "cmake_configure": {
+      "wall_ms": 15911.153495,
+      "wall_samples_ms": [16006.208691, 15911.153495, 15535.600322],
+      "user_s": 9.52,
+      "system_s": 6.56,
+      "max_rss_kb": 140236,
+      "fs_outputs": 39640,
+      "cv_percent": 1.2845
+    }
   }
 }

@@ -20,6 +20,9 @@ void build(C_Build *b) {
     c_link_flag(app, "-Wl,--as-needed");
     c_link_system(app, "m");
     c_framework(app, "Foundation");
+    c_unity(app, 8);
+    c_unity_auto(lib);
+    c_no_unity(test);
 
     c_sources(lib, "lib/*.c");
     c_sources(test, "tests/*.c");

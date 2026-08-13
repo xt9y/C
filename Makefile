@@ -15,7 +15,7 @@ endif
 
 all: $(TARGET)
 
-$(TARGET): src/cli.c src/main.c src/cache_io.h include/cbuild.h
+$(TARGET): src/cli.c src/main.c src/cache_io.h src/perf_v2.h include/cbuild.h
 	mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -include src/cache_io.h -Iinclude -DCBUILD_HEADER_PATH='"$(abspath include/cbuild.h)"' src/cli.c $(LDLIBS) -o $(TARGET)
 

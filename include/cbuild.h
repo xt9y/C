@@ -64,6 +64,7 @@ typedef struct C_Target {
     C_StringList frameworks;
     C_Dependency *deps[C_MAX_DEPS];
     size_t dep_count;
+    int unity_chunk;  /* 0=inherit CLI, 1=off, -1=auto, >=2=fixed chunk */
 } C_Target;
 
 typedef struct C_Build {
@@ -141,6 +142,9 @@ static inline void c_flag(C_Target *t, const char *value) { if (t) c__push(&t->c
 static inline void c_link_flag(C_Target *t, const char *value) { if (t) c__push(&t->ldflags, value); }
 static inline void c_link_system(C_Target *t, const char *name) { if (t) c__push(&t->system_links, name); }
 static inline void c_framework(C_Target *t, const char *name) { if (t) c__push(&t->frameworks, name); }
+static inline void c_unity(C_Target *t, int chunk_size) { if (t) t->unity_chunk = chunk_size > 1 ? chunk_size : 1; }
+static inline void c_unity_auto(C_Target *t) { if (t) t->unity_chunk = -1; }
+static inline void c_no_unity(C_Target *t) { if (t) t->unity_chunk = 1; }
 
 static inline C_Dependency *c_git(C_Build *b, const char *name, const char *git, const char *ref) {
     if (!b || b->dep_count >= C_MAX_DEPS) return NULL;

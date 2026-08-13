@@ -42,12 +42,75 @@ jobs:
           set -o pipefail
           python3 benchmarks/sdl3/benchmark.py | tee benchmark-report/benchmark.log
 
-      - name: Generate benchmark files
+      - name: Build benchmark report
         run: |
           python3 benchmarks/sdl3/render_report.py \
             benchmark-report/benchmark.log \
-            benchmark-report \
-            --repo-root "$GITHUB_WORKSPACE"
+            benchmark-report
+
+      - name: Update tracked benchmark files
+        run: |
+          cp benchmark-report/timings.svg benchmarks/sdl3/timings.svg
+          cp benchmark-report/resources.svg benchmarks/sdl3/resources.svg
+          cp benchmark-report/results.json benchmarks/sdl3/results.json
+          rm -f benchmarks/sdl3/results-*.json
+
+          {
+            echo '# SDL3 benchmark'
+            echo
+            echo '_Generated automatically by the manually-triggered SDL3 benchmark GitHub Actions workflow. Do not edit benchmark numbers by hand._'
+            echo
+            tail -n +2 benchmark-report/summary.md
+            echo
+            echo 'Raw measurements and every sample: [`benchmarks/sdl3/results.json`](benchmarks/sdl3/results.json)'
+          } > BENCHMARK.md
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          START = '<!-- sdl3-benchmark:start -->'
+          END = '<!-- sdl3-benchmark:end -->'
+
+          def fmt(ms):
+              return f'{ms / 1000:.2f} s' if ms >= 1000 else f'{ms:.1f} ms'
+
+          result = json.loads(Path('benchmark-report/results.json').read_text())
+          c = result['c']
+          ninja = result['cmake_ninja']
+          change = result['change_stats']
+
+          section = f'''{START}
+          ## SDL3 benchmark
+
+          Real SDL3 static debug build, {result['source_count']} translation units, {result['jobs']} build jobs on a {result['machine']['cpu_count']}-vCPU GitHub Actions runner.
+
+          ![SDL3 build-time benchmark](benchmarks/sdl3/timings.svg)
+
+          - Clean: `c` {fmt(c['clean']['wall_ms'])}; CMake + Ninja {fmt(ninja['clean']['wall_ms'])}.
+          - Real {change['commits']}-commit update: `c` {fmt(c['real_update']['wall_ms'])}; CMake + Ninja {fmt(ninja['real_update']['wall_ms'])}.
+          - Rebuilt TUs: {c['translation_units_rebuilt']} / {result['source_count']} with `c`; {ninja['translation_units_rebuilt']} / {result['source_count']} with Ninja.
+
+          Full generated report and raw measurements: [BENCHMARK.md](BENCHMARK.md)
+          {END}'''
+          section = '\n'.join(line[10:] if line.startswith('          ') else line for line in section.splitlines())
+
+          path = Path('README.md')
+          text = path.read_text()
+          if START in text and END in text:
+              before, rest = text.split(START, 1)
+              _, after = rest.split(END, 1)
+              text = before.rstrip() + '\n\n' + section + after
+          else:
+              start = text.find('## SDL3 benchmark')
+              if start < 0:
+                  raise RuntimeError('README benchmark section not found')
+              end = text.find('\n## ', start + 1)
+              if end < 0:
+                  end = len(text)
+              text = text[:start].rstrip() + '\n\n' + section + '\n\n' + text[end:].lstrip()
+          path.write_text(text)
+          PY
 
       - name: Publish benchmark summary
         run: cat benchmark-report/summary.md >> "$GITHUB_STEP_SUMMARY"

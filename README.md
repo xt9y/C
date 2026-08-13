@@ -14,10 +14,14 @@ c run
 C has excellent compilers and a fragmented build/package story. `c` aims for the workflow of a modern integrated build system without introducing another configuration language or delegating builds to other build systems.
 
 - `build.c` is real C.
-- Project and dependency sources are compiled by the selected C compiler.
-- Independent translation units compile in parallel by default.
+- Project and dependency sources are compiled by the selected compiler.
+- Independent translation units compile in parallel.
+- The normal default uses roughly half of the available CPU cores so a build does not monopolize the machine.
+- Historical compile timings are used to start expensive translation units first.
 - Reusable compiled objects are stored in a persistent global cache.
+- Header hashes and parsed dependency information are persistently cached.
 - Git dependencies are globally cached.
+- Independent source dependencies can build concurrently.
 - Source dependencies are cached as static archives.
 - `c.lock` pins dependencies to exact commits.
 - Incremental compilation uses compiler depfiles.
@@ -54,7 +58,11 @@ c fetch build test
 
 ## Build performance
 
-`c build` automatically compiles independent source files in parallel using the available CPU count. Override the job count when needed:
+### Parallel compilation
+
+`c build` automatically compiles independent source files in parallel. The default is approximately **half of the available logical CPUs**, which keeps the machine responsive while still giving large clean builds substantial parallelism.
+
+Override it when needed:
 
 ```sh
 c build -j 8
@@ -63,7 +71,28 @@ c build --jobs=4
 c build -j 1
 ```
 
-Project objects remain incremental through compiler depfiles. In addition, successful objects are stored in the global `c` cache. This cache survives `c clean`, so a clean project rebuild can restore unchanged objects instead of recompiling them. Cache entries validate the source, compiler configuration, compile flags, and the contents of included headers before reuse.
+`C_JOBS=N` provides the same override through the environment.
+
+For a machine that is already under load, optional adaptive scheduling can lower the active job count further:
+
+```sh
+c build --adaptive-jobs
+C_ADAPTIVE_JOBS=1 c build
+```
+
+The compiler queue is not simple FIFO. `c` records historical translation-unit timings and schedules the most expensive work first. This reduces the common tail where most cores sit idle while one large C++ source file finishes.
+
+### Persistent object cache
+
+Project objects remain incremental through compiler depfiles. Successful objects are also stored in the global `c` cache. The cache survives `c clean`, so a clean project rebuild can restore unchanged objects instead of recompiling them.
+
+Cache entries validate the source, compiler/tool identity, compile flags, relevant environment, and the contents of included headers before reuse. Header content hashes and parsed depfiles are themselves persisted, reducing repeated filesystem and hashing work across separate `c` invocations.
+
+Where the filesystem supports it, cached objects are restored using copy-on-write cloning instead of byte-for-byte copying:
+
+- Linux: reflink / `FICLONE`
+- macOS: `clonefile()`
+- other/unsupported filesystems: normal atomic copy fallback
 
 The global object cache is enabled by default. Disable it for one command with:
 
@@ -71,24 +100,89 @@ The global object cache is enabled by default. Disable it for one command with:
 c build --no-object-cache
 ```
 
-For environments where compiler process startup is unusually expensive, `c` also supports optional unity/chunk compilation:
+### Unity/chunk compilation
+
+For environments where compiler startup and repeated header parsing are expensive, `c` supports optional unity compilation:
 
 ```sh
 c build --unity
 c build --unity=8
+c build --unity=auto
 ```
 
-`--unity` defaults to chunks of 8 compatible source files. C, C++, Objective-C, and Objective-C++ files are chunked separately. Unity mode is opt-in because some projects contain translation-unit-local declarations or macros that collide when multiple source files are included into one generated unit. If a project is not unity-safe, use the default build mode.
+`--unity` uses chunks of 8 compatible sources. `--unity=auto` uses source size plus learned compile-time history to choose smaller or larger chunks. C, C++, Objective-C, and Objective-C++ are always separated.
 
-Performance defaults can also be configured through the environment:
+Unity remains opt-in because arbitrary projects can contain translation-unit-local declarations or macros that collide when source files are combined.
+
+Unity can also be configured for a specific target in `build.c`:
+
+```c
+c_unity(app, 8);       // fixed chunk size
+c_unity_auto(app);     // history-balanced chunks
+c_no_unity(app);       // force normal translation units
+```
+
+A target-level setting overrides the command-line default for that target.
+
+### Faster debug builds
+
+When full debug information is unnecessary, use:
+
+```sh
+c build --fast-debug
+```
+
+This uses a lighter debug compilation profile (`-O1 -g1` on the current GCC/Clang-compatible path) instead of the normal `-O0 -g` debug profile.
+
+### Linker selection
+
+The normal system linker remains the default. An alternate compiler-driver linker can be requested explicitly:
+
+```sh
+c build --linker=mold
+c build --linker=lld
+```
+
+Or let `c` use an available fast linker when supported:
+
+```sh
+c build --linker=auto
+```
+
+`C_LINKER` provides the environment equivalent.
+
+### Build profiling
+
+Use `--profile` to see where build time is going:
+
+```sh
+c build --profile
+```
+
+The report includes effective jobs, compiled objects, object-cache hits, link time, and the slowest translation units. The timing history is also used by future longest-job-first scheduling and automatic unity chunking.
+
+### Watch mode
+
+For edit/build loops:
+
+```sh
+c watch
+c watch app
+```
+
+`c watch` keeps the build command active, fingerprints the project tree, and rebuilds when source/configuration files change. Global object/header/dependency caches remain available across rebuilds, so unchanged work is reused immediately.
+
+### Performance environment variables
 
 ```text
 C_JOBS=8
-C_UNITY=8
+C_ADAPTIVE_JOBS=1
+C_UNITY=auto
 C_OBJECT_CACHE=0
+C_PROFILE=1
+C_FAST_DEBUG=1
+C_LINKER=auto
 ```
-
-`C_OBJECT_CACHE=0` disables the persistent object cache. `C_UNITY` enables unity mode with the given chunk size. `C_JOBS` overrides automatic CPU-count detection.
 
 ## Git dependencies
 
@@ -129,7 +223,7 @@ c_use(app, foo);
 
 `c` checks out the pinned revision globally, compiles the declared dependency sources with the selected compiler, archives them into a cached `libfoo.a`, and links that archive into the consuming target.
 
-Dependency compile flags are isolated from the application sources. No project-local clone and no dependency-specific build system are required.
+Independent source dependencies can compile concurrently while respecting the overall job budget. Dependency compile flags remain isolated from application sources. No project-local clone and no dependency-specific build system are required.
 
 ## Lockfile
 
@@ -151,6 +245,7 @@ Commit `c.lock`. Another machine will build the same revisions.
 c init
 c build [target]
 c run [target] [-- args...]
+c watch [target]
 c fetch
 c update [dependency]
 c deps
@@ -167,9 +262,13 @@ Useful options:
 --release / -Drelease
 --cc clang
 -j N / -jN / --jobs=N
---unity / --unity=N
+--adaptive-jobs / --no-adaptive-jobs
+--unity / --unity=N / --unity=auto
 --no-unity
 --object-cache / --no-object-cache
+--fast-debug
+--profile
+--linker=NAME / --linker=auto
 -v / --verbose
 ```
 
@@ -208,7 +307,7 @@ macOS:
 
 Override it with `C_CACHE_DIR`.
 
-The cache contains reusable compiled objects, Git mirrors, immutable source checkouts, compiled dependency archives, and compiled `build.c` modules. `c clean` removes project build output but keeps the global cache. Use `c cache clean` when you explicitly want to discard global cached data.
+The cache contains reusable compiled objects, persistent header hashes and parsed dep information, historical compile timings, Git mirrors, immutable source checkouts, compiled dependency archives, and compiled `build.c` modules. `c clean` removes project build output but keeps the global cache. Use `c cache clean` when you explicitly want to discard global cached data.
 
 ## Install
 
@@ -274,10 +373,22 @@ v0.1 currently includes:
 - test targets via `c_test()` and `c test`
 - Clang/GCC-compatible compilers
 - parallel translation-unit compilation
-- automatic CPU-count based job selection with `-j` overrides
+- half-CPU default job selection with explicit `-j` overrides
+- optional load-aware adaptive job limiting
+- historical longest-job-first scheduling
+- concurrent independent source-dependency builds
+- parallel test execution
 - incremental object rebuilds
 - persistent globally reusable object cache with header-content validation
-- optional unity/chunk compilation
+- Linux reflink/macOS clonefile cache restoration when available
+- persistent header-hash and depfile caches
+- historical compile-time cache
+- optional fixed or automatic unity/chunk compilation
+- per-target unity controls
+- build profiling
+- fast-debug mode
+- alternate linker selection
+- watch mode
 - automatic `compile_commands.json`
 - system libraries and macOS frameworks
 - globally cached Git dependencies
@@ -288,7 +399,7 @@ v0.1 currently includes:
 - debug/release builds
 - macOS/Linux
 
-Planned next: native package metadata with exported public/private dependency information, broader parallel build-graph scheduling, shared libraries, cache garbage collection, cross compilation, and richer compiler-native package adapters.
+Planned next: native package metadata with exported public/private dependency information, shared libraries, cache garbage collection, cross compilation, and richer compiler-native package adapters.
 
 ## Philosophy
 

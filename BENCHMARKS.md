@@ -3,7 +3,7 @@
 Real SDL3 build, measured on 2026-08-13.
 
 - Ubuntu 24.04 GitHub Actions
-- AMD EPYC 7763
+- Intel Xeon Platinum 8573C
 - 4 vCPUs
 - 2 build jobs for both tools
 - GCC 13.3.0
@@ -14,28 +14,42 @@ Real SDL3 build, measured on 2026-08-13.
 - Debug build
 - Precompiled headers disabled for both sides
 
-| Build | Clean | No changes | Real SDL commit |
+| Build | Clean | No changes | Real SDL update |
 | --- | ---: | ---: | ---: |
-| `c` | 36.48 s | 14.5 ms | 508.7 ms |
-| CMake + Ninja | 37.41 s | 18.4 ms | 865.3 ms |
+| `c` | 34.57 s | 10.9 ms | 923.3 ms |
+| CMake + Ninja | 35.86 s | 14.2 ms | 1.56 s |
 
-The incremental test is not a touched file.
+The incremental test is not a touched file or generated edit.
 
 It builds SDL at:
 
-`b340ddcd7b44511f7b49005ba4a91a3c9907f77e`
+`b07d48821698af08545cb38e293ead99753bfc35`
 
-Then checks out the very next SDL commit:
+Then checks out:
 
-`b640b804a8cfe9f998ac82650a32c5e6e6cd4571`
+`eba3c7ae0ad85c13051179d196e5187ccb96cf6a`
 
-That commit changes `src/core/linux/SDL_evdev.c` by 5 lines.
+That is a real range of 7 consecutive SDL commits changing 9 files, including Linux core and joystick code.
+
+Changed files in the range:
+
+- `src/core/linux/SDL_udev.c`
+- `src/joystick/SDL_gamepad.c`
+- `src/joystick/SDL_joystick.c`
+- `src/joystick/hidapi/SDL_hidapi_gamesir.c`
+- `src/joystick/hidapi/SDL_hidapi_zuiki.c`
+- `src/joystick/usb_ids.h`
+- `src/video/wayland/SDL_waylanddatamanager.h`
+- `src/video/wayland/SDL_waylandevents.c`
+- `docs/README-gdk.md`
+
+The benchmark uses SDL's dependency-light Unix console configuration, so disabled backends such as Wayland and HIDAPI are still present in the real checkout range but are not compiled into this target. Both build systems see the same source tree and the same enabled SDL3 static-library workload.
 
 Method:
 
 - Clean: median of 3 clean compile/archive runs after build configuration is prepared.
 - No changes: median of 10 rebuilds.
-- Real SDL commit: median of 5 rebuilds after moving from the pinned base commit to the adjacent commit.
+- Real SDL update: median of 5 rebuilds after moving across the pinned 7-commit range.
 - CMake configuration time is not included in the CMake + Ninja clean number.
 - `c` object caching is disabled.
 - Both builds use SDL's Unix console configuration so the benchmark does not depend on X11/Wayland packages.

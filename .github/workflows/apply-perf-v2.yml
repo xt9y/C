@@ -52,7 +52,7 @@ jobs:
           grep -q 'c_unity_auto' include/cbuild.h
           grep -q 'half available CPUs' src/cli.c
       - name: Remove one-shot integration machinery
-        run: git rm .github/workflows/apply-perf-v2.yml tools/apply_perf_v2.py
+        run: git rm -f .github/workflows/apply-perf-v2.yml tools/apply_perf_v2.py
       - name: Commit integration
         run: |
           git config user.name "Felix"

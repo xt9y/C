@@ -19,12 +19,19 @@ jobs:
           sudo apt-get install -y build-essential libgl1-mesa-dev xorg-dev libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev libxext-dev
       - name: Build C
         run: make
-      - name: Checkout BGE
-        run: git clone --depth 1 https://github.com/xt9y/BGE.git /tmp/bge
-      - name: Benchmark half-core default and warm cache
+      - name: Checkout optimized BGE
+        run: git clone --depth 1 --branch build-performance-cleanup https://github.com/xt9y/BGE.git /tmp/bge
+      - name: Benchmark serial baseline
         run: |
           cd /tmp/bge
           rm -rf "$HOME/.cache/c" build
+          /usr/bin/time -f 'serial cold: %e s' "$GITHUB_WORKSPACE/build/c" build -j1 --no-object-cache 2>&1 | tee /tmp/serial.log
+          test -x build/debug/bge
+      - name: Benchmark half-core default and warm cache
+        run: |
+          cd /tmp/bge
+          "$GITHUB_WORKSPACE/build/c" clean
+          rm -rf "$HOME/.cache/c/objects"
           /usr/bin/time -f 'default-half-cpu cold: %e s' "$GITHUB_WORKSPACE/build/c" build --no-object-cache 2>&1 | tee /tmp/default.log
           "$GITHUB_WORKSPACE/build/c" clean
           /usr/bin/time -f 'parallel cached population: %e s' "$GITHUB_WORKSPACE/build/c" build 2>&1 | tee /tmp/populate.log

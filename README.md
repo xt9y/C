@@ -43,6 +43,8 @@ c run
 
 Docs (Thanks to AI): https://xt9y.de/c.html
 
+Benchmarks: [BENCHMARKS.md](BENCHMARKS.md)
+
 ## Notes
 
 - This is a young project.

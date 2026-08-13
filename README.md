@@ -37,8 +37,8 @@ void build(C_Build *b) {
 ## Install
 
 ```bash
-git clone https://github.com/xt9y/C.git
-cd C
+git clone https://github.com/xt9y/C-BuildSystem.git
+cd C-BuildSystem
 make
 sudo make install
 ```

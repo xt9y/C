@@ -1,6 +1,10 @@
 #ifndef C_CACHE_IO_H
 #define C_CACHE_IO_H
 
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
+#endif
+
 #ifdef __APPLE__
 #ifndef _DARWIN_C_SOURCE
 #define _DARWIN_C_SOURCE

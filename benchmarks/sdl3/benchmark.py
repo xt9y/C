@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import benchmark_curve as curve
 import benchmark_stats as stats
-from benchmark_curve import main as curve_main
 from benchmark_stats import main as baseline_main
+from curve_selector import select_ranges as adaptive_select_ranges
 
 
 _base_cmake_args = stats.cmake_args
@@ -15,4 +16,5 @@ def fixed_graph_cmake_args(source, build):
 if __name__ == "__main__":
     baseline_main()
     stats.cmake_args = fixed_graph_cmake_args
-    curve_main()
+    curve.select_ranges = adaptive_select_ranges
+    curve.main()

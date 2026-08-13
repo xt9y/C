@@ -1,0 +1,34 @@
+name: Apply Performance V2
+
+on:
+  push:
+    branches:
+      - build-performance
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply integration patch
+        run: python3 tools/apply_perf_v2.py
+      - name: Verify generated source parses
+        run: |
+          python3 -m py_compile tools/apply_perf_v2.py
+          grep -q '#include "perf_v2.h"' src/cli.c
+          grep -q 'c_unity_auto' include/cbuild.h
+      - name: Remove one-shot integration machinery
+        run: git rm .github/workflows/apply-perf-v2.yml tools/apply_perf_v2.py
+      - name: Commit integration
+        run: |
+          git config user.name "Felix"
+          git config user.email "felix@xt9y.de"
+          git add src/cli.c src/perf_v2.h include/cbuild.h tests/api_baseline.sh Makefile
+          git commit -m "Add advanced build performance engine"
+          git push origin HEAD:build-performance

@@ -82,62 +82,24 @@ Both build systems rebuild exactly the same 4 translation units:
 - `SDL_joystick.c`
 - `SDL_sysjoystick.c`
 
-### Time
+### Results
 
-| | `c` | CMake + Ninja |
-| --- | ---: | ---: |
-| Clean build | **38.22 s** | 39.26 s |
-| No changes | **17.9 ms** | 23.9 ms |
-| Real 7-commit update | **1.10 s** | 1.29 s |
-| Archive only | **176.9 ms** | 332.2 ms |
-| TUs rebuilt | 4 / 219 | 4 / 219 |
+| Metric | `c` clean | CMake + Ninja clean | `c` update | CMake + Ninja update | `c` no-op | CMake + Ninja no-op | `c` archive | CMake + Ninja archive |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Wall time | **38.22 s** | 39.26 s | **1.10 s** | 1.29 s | **17.9 ms** | 23.9 ms | **176.9 ms** | 332.2 ms |
+| TUs rebuilt | - | - | 4 / 219 | 4 / 219 | - | - | - | - |
+| User CPU | 65.19 s | 66.98 s | 1.60 s | 1.69 s | 0.00 s | 0.00 s | 0.07 s | 0.12 s |
+| System CPU | 10.85 s | 10.96 s | 0.33 s | 0.41 s | 0.01 s | 0.01 s | 0.10 s | 0.20 s |
+| Average CPU use | 198.7% | 198.9% | 175.6% | 164.6% | 55.8% | 42.3% | 94.7% | 96.3% |
+| Peak RSS | 184.44 MiB | 182.84 MiB | 141.02 MiB | 140.15 MiB | 4.59 MiB | 9.55 MiB | 140.20 MiB | 140.25 MiB |
+| File-system inputs | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| File-system outputs | 179,952 | 242,680 | 66,704 | 127,136 | 376 | 0 | 61,216 | 121,640 |
+| Major page faults | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Minor page faults | 3,150,767 | 3,180,442 | 73,501 | 86,048 | 983 | 1,764 | 12,561 | 25,043 |
+| Voluntary context switches | 2,211 | 2,651 | 47 | 70 | 4 | 10 | 7 | 22 |
+| Involuntary context switches | 670 | 671 | 30 | 40 | 0.5 | 0 | 14 | 26 |
 
 On this runner, `c` used 2.65% less wall time for the clean build, 24.91% less for a no-op, 14.64% less for the real update, and 46.73% less for the archive-only step.
-
-### Real update resources
-
-| | `c` | CMake + Ninja |
-| --- | ---: | ---: |
-| User CPU | 1.60 s | 1.69 s |
-| System CPU | 0.33 s | 0.41 s |
-| Average CPU use | 175.6% | 164.6% |
-| Peak RSS | 141.02 MiB | 140.15 MiB |
-| File-system inputs | 0 | 0 |
-| File-system outputs | 66,704 | 127,136 |
-| Major page faults | 0 | 0 |
-| Minor page faults | 73,501 | 86,048 |
-| Voluntary context switches | 47 | 70 |
-| Involuntary context switches | 30 | 40 |
-
-### Clean build resources
-
-| | `c` | CMake + Ninja |
-| --- | ---: | ---: |
-| User CPU | 65.19 s | 66.98 s |
-| System CPU | 10.85 s | 10.96 s |
-| Average CPU use | 198.7% | 198.9% |
-| Peak RSS | 184.44 MiB | 182.84 MiB |
-| File-system inputs | 0 | 0 |
-| File-system outputs | 179,952 | 242,680 |
-| Major page faults | 3 | 0 |
-| Minor page faults | 3,150,767 | 3,180,442 |
-| Voluntary context switches | 2,211 | 2,651 |
-| Involuntary context switches | 670 | 671 |
-
-### No-op and archive resources
-
-| | `c` no-op | Ninja no-op | `c` archive | Ninja archive |
-| --- | ---: | ---: | ---: | ---: |
-| User CPU | 0.00 s | 0.00 s | 0.07 s | 0.12 s |
-| System CPU | 0.01 s | 0.01 s | 0.10 s | 0.20 s |
-| Average CPU use | 55.8% | 42.3% | 94.7% | 96.3% |
-| Peak RSS | 4.59 MiB | 9.55 MiB | 140.20 MiB | 140.25 MiB |
-| File-system inputs | 0 | 0 | 0 | 0 |
-| File-system outputs | 376 | 0 | 61,216 | 121,640 |
-| Major page faults | 0 | 0 | 0 | 0 |
-| Minor page faults | 983 | 1,764 | 12,561 | 25,043 |
-| Voluntary context switches | 4 | 10 | 7 | 22 |
-| Involuntary context switches | 0.5 | 0 | 14 | 26 |
 
 CPU use can exceed 100% because compiler processes run in parallel. CPU percentages for ~20 ms no-op runs are coarse because GNU `time` reports CPU time at limited resolution. File-system input/output values are the counters reported by GNU `time -v`; they are not byte counts.
 

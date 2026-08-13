@@ -2,6 +2,15 @@
 
 Build C with C.
 
+```c
+#include <cbuild.h>
+
+void build(C_Build *b) {
+  C_Target *app = c_executable(b, „app“);
+  c_sources(app, „src/*.c“);
+}
+```
+
 - `build.c` is normal C.
 - Git dependencies.
 - Incremental builds.

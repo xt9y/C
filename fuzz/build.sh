@@ -7,9 +7,9 @@ CC=${CC:-clang}
 TARGET=${1:-all}
 
 case "$TARGET" in
-    all) TARGETS="lockfile depfile cache" ;;
-    lockfile|depfile|cache) TARGETS="$TARGET" ;;
-    *) echo "usage: $0 [all|lockfile|depfile|cache]" >&2; exit 2 ;;
+    all) TARGETS="lockfile depfile cache fs project" ;;
+    lockfile|depfile|cache|fs|project) TARGETS="$TARGET" ;;
+    *) echo "usage: $0 [all|lockfile|depfile|cache|fs|project]" >&2; exit 2 ;;
 esac
 
 if ! command -v "$CC" >/dev/null 2>&1; then
@@ -37,14 +37,25 @@ if [ "$(uname -s)" = "Linux" ]; then
     LDLIBS="-ldl"
 fi
 
+COVERAGE_FLAGS=
+if [ "${FUZZ_COVERAGE:-0}" = "1" ]; then
+    COVERAGE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+fi
+
+HEADER_DEFINE="-DCBUILD_HEADER_PATH=\"$ROOT/include/cbuild.h\""
+FUZZ_INCLUDE_DEFINE="-DC_FUZZ_INCLUDE_DIR=\"$ROOT/include\""
+
 for name in $TARGETS; do
     "$CC" \
         -std=c11 -O1 -g \
         -fno-omit-frame-pointer \
         -fno-sanitize-recover=all \
         -fsanitize=fuzzer,address,undefined \
+        $COVERAGE_FLAGS \
         -D_XOPEN_SOURCE=700 \
         -D_POSIX_C_SOURCE=200809L \
+        "$HEADER_DEFINE" \
+        "$FUZZ_INCLUDE_DEFINE" \
         -I"$ROOT/include" \
         -I"$ROOT/src" \
         -I"$ROOT/fuzz" \

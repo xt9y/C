@@ -1,8 +1,6 @@
 name: Fuzz nightly
 
 on:
-  push:
-    branches: [fuzz-testing]
   schedule:
     - cron: '17 2 * * *'
   workflow_dispatch:

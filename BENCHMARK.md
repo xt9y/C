@@ -7,16 +7,23 @@ _Generated automatically by the manually-triggered SDL3 benchmark GitHub Actions
 
 ![SDL3 incremental scaling](benchmarks/sdl3/timings.svg)
 
-The x-axis is the **actual measured number of translation units rebuilt**. For extra history points, the benchmark keeps one fixed 219-TU endpoint tree/build graph and replaces only files that were genuinely modified in an older real SDL range with their historical contents. Additions and deletions stay at the endpoint so the source set remains comparable.
+The x-axis is the **number of SDL source files changed**. The controlled points edit exactly 7, 21, 42, 63, 105, 147, and 189 endpoint translation units with harmless comments, using a deterministic mixed ordering across SDL subsystems. Larger points are cumulative supersets of smaller points.
 
-| Rebuilt TUs | SDL range | `c` | CMake + Ninja | Result |
-| ---: | --- | ---: | ---: | --- |
-| 0 | No changes | 10.5 ms | 14.7 ms | `c` 28.4% faster |
-| 4 | 7 commits / 9 files | 946.9 ms | 1.10 s | `c` 13.5% faster |
-| 6 | 9 commits / 24 applied files | 1.26 s | 1.41 s | `c` 10.7% faster |
-| 219 | Clean build | 35.21 s | 35.98 s | `c` 2.1% faster |
+This controlled curve is intentionally separate from the real 7-commit SDL update reported below: the real update shows real-world behavior, while this curve isolates how each build system scales as the amount of invalidated source code grows.
 
-Each extra history point is measured 3 times. Candidate ranges are selected from Ninja's real endpoint dependency graph. Points that do not build cleanly or rebuild different TU counts between the tools are skipped instead of invalidating the whole report.
+| Changed source files | Rebuilt TUs | `c` | CMake + Ninja | Result |
+| ---: | ---: | ---: | ---: | --- |
+| 0 | 0 | 14.3 ms | 16.6 ms | `c` 13.7% faster |
+| 7 | 7 | 1.27 s | 1.53 s | `c` 17.0% faster |
+| 21 | 21 | 3.17 s | 3.37 s | `c` 5.9% faster |
+| 42 | 42 | 6.32 s | 6.49 s | `c` 2.6% faster |
+| 63 | 63 | 9.12 s | 9.36 s | `c` 2.5% faster |
+| 105 | 105 | 13.92 s | 14.72 s | `c` 5.5% faster |
+| 147 | 147 | 20.05 s | 20.71 s | `c` 3.2% faster |
+| 189 | 189 | 26.26 s | 26.93 s | `c` 2.5% faster |
+| 219 | 219 | 30.51 s | 31.27 s | `c` 2.5% faster |
+
+Each controlled incremental point is measured 2 times. The benchmark fails rather than publish a point unless both tools rebuild exactly the requested number of translation units.
 
 `c` vs CMake + Ninja on a real SDL3 static debug build. Lower is better.
 
@@ -24,10 +31,10 @@ Each extra history point is measured 3 times. Candidate ranges are selected from
 
 | Build | `c` | CMake + Ninja |
 | --- | ---: | ---: |
-| Clean build | 35.21 s | 35.98 s |
-| No changes | 10.5 ms | 14.7 ms |
-| Real 7-commit anchor update | 946.9 ms | 1.10 s |
-| Archive only | 123.8 ms | 233.6 ms |
+| Clean build | 30.51 s | 31.27 s |
+| No changes | 14.3 ms | 16.6 ms |
+| Real 7-commit anchor update | 858.4 ms | 982.0 ms |
+| Archive only | 141.1 ms | 275.6 ms |
 | Anchor TUs rebuilt | 4 / 219 | 4 / 219 |
 
 ## Anchor update resources
@@ -36,22 +43,22 @@ Each extra history point is measured 3 times. Candidate ranges are selected from
 
 | Metric | `c` | CMake + Ninja |
 | --- | ---: | ---: |
-| CPU time | 1.69 s | 1.84 s |
-| Peak RSS | 141.00 MiB | 141.81 MiB |
+| CPU time | 1.49 s | 1.59 s |
+| Peak RSS | 156.27 MiB | 157.07 MiB |
 | Filesystem outputs | 66,704 | 127,136 |
-| Context switches | 69 | 102 |
+| Context switches | 68 | 105 |
 
 ## Setup cost
 
 | Metric | Fresh `c` build-script cache | CMake configure |
 | --- | ---: | ---: |
-| Wall time | 201.8 ms | 12.63 s |
-| Peak RSS | 36.13 MiB | 136.93 MiB |
+| Wall time | 178.4 ms | 14.91 s |
+| Peak RSS | 36.29 MiB | 152.24 MiB |
 
 ## Runner
 
 - **Date:** 2026-08-14
-- **CPU:** Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz (4 vCPUs)
+- **CPU:** AMD EPYC 9V74 80-Core Processor (4 vCPUs)
 - **Jobs:** 2
 - **Compiler:** cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 - **CMake:** cmake version 3.31.6
@@ -69,6 +76,6 @@ Each extra history point is measured 3 times. Candidate ranges are selected from
 - SDL revision metadata is pinned to `benchmark`.
 - Hosted-runner measurements describe this run, not every machine.
 
-The downloadable **`sdl3-benchmark-31`** artifact contains the raw log, JSON measurements and SVG charts.
+The downloadable **`sdl3-benchmark-33`** artifact contains the raw log, JSON measurements and SVG charts.
 
 Raw measurements and every sample: [`benchmarks/sdl3/results.json`](benchmarks/sdl3/results.json)

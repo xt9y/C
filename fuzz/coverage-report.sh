@@ -23,33 +23,47 @@ mkdir -p "$OUT"
 PROFDATA="$OUT/coverage.profdata"
 llvm-profdata merge -sparse "$PROFILE_DIR"/*.profraw -o "$PROFDATA"
 
-OBJECT_ARGS="-object=$BUILD/fuzz_depfile -object=$BUILD/fuzz_cache -object=$BUILD/fuzz_fs -object=$BUILD/fuzz_project"
-SOURCES="$ROOT/src/cli.c $ROOT/src/main.c $ROOT/src/perf_v2.h $ROOT/src/cache_io.h"
+# Aggregate all fuzz binaries. The harnesses themselves and cbuild.h are
+# excluded so the summary reflects the production implementation in src/.
+COV_COMMON="-instr-profile=$PROFDATA -ignore-filename-regex=(^|/)(fuzz|include)/"
 
 # shellcheck disable=SC2086
 llvm-cov report "$BUILD/fuzz_lockfile" \
-    $OBJECT_ARGS \
-    -instr-profile="$PROFDATA" \
-    -ignore-filename-regex='(^|/)fuzz/' \
-    -sources $SOURCES \
+    -object="$BUILD/fuzz_depfile" \
+    -object="$BUILD/fuzz_cache" \
+    -object="$BUILD/fuzz_fs" \
+    -object="$BUILD/fuzz_project" \
+    $COV_COMMON \
     > "$OUT/coverage.txt"
 
 # shellcheck disable=SC2086
 llvm-cov export "$BUILD/fuzz_lockfile" \
-    $OBJECT_ARGS \
-    -instr-profile="$PROFDATA" \
-    -ignore-filename-regex='(^|/)fuzz/' \
-    -sources $SOURCES \
+    -object="$BUILD/fuzz_depfile" \
+    -object="$BUILD/fuzz_cache" \
+    -object="$BUILD/fuzz_fs" \
+    -object="$BUILD/fuzz_project" \
+    $COV_COMMON \
     > "$OUT/coverage.json"
 
 # shellcheck disable=SC2086
 llvm-cov show "$BUILD/fuzz_lockfile" \
-    $OBJECT_ARGS \
-    -instr-profile="$PROFDATA" \
-    -ignore-filename-regex='(^|/)fuzz/' \
+    -object="$BUILD/fuzz_depfile" \
+    -object="$BUILD/fuzz_cache" \
+    -object="$BUILD/fuzz_fs" \
+    -object="$BUILD/fuzz_project" \
+    $COV_COMMON \
     -format=html \
     -output-dir="$OUT/html" \
-    -sources $SOURCES \
     >/dev/null
+
+{
+    echo '# Fuzz coverage'
+    echo
+    echo 'Production `src/` coverage reached by the current fuzz corpus.'
+    echo
+    echo '```text'
+    cat "$OUT/coverage.txt"
+    echo '```'
+} > "$OUT/coverage.md"
 
 cat "$OUT/coverage.txt"

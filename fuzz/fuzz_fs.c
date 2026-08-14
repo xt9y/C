@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <sched.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -139,11 +141,79 @@ static void fuzz_fs_concurrent_hashes(const uint8_t *data, size_t size) {
     fuzz_fs_assert_guard();
 }
 
+static void fuzz_fs_symlink_race(uint64_t value) {
+    char temp[PATH_MAX];
+    int n = snprintf(temp, sizeof(temp), "%s.tmp.%ld", fuzz_fs_hash_meta, (long)getpid());
+    if (n < 0 || n >= (int)sizeof(temp)) abort();
+
+    int start_pipe[2];
+    if (pipe(start_pipe) != 0) abort();
+    pid_t attacker = fork();
+    if (attacker < 0) abort();
+    if (attacker == 0) {
+        close(start_pipe[1]);
+        char token = 0;
+        ssize_t got;
+        do { got = read(start_pipe[0], &token, 1); } while (got < 0 && errno == EINTR);
+        close(start_pipe[0]);
+        if (got != 1) _exit(2);
+
+        unsigned attacks = 256u + (unsigned)(value & 255ULL);
+        for (unsigned i = 0; i < attacks; ++i) {
+            if (unlink(temp) != 0 && errno != ENOENT) _exit(3);
+            if (symlink(fuzz_fs_victim, temp) != 0 && errno != EEXIST) _exit(4);
+            sched_yield();
+        }
+        _exit(0);
+    }
+
+    close(start_pipe[0]);
+    char token = 'x';
+    ssize_t sent;
+    do { sent = write(start_pipe[1], &token, 1); } while (sent < 0 && errno == EINTR);
+    close(start_pipe[1]);
+    if (sent != 1) abort();
+
+    unsigned stores = 16u + (unsigned)(value & 15ULL);
+    for (unsigned i = 0; i < stores; ++i) {
+        compiler_persistent_hash_store(
+            "source.c",
+            fuzz_fs_source_stamp.sec,
+            fuzz_fs_source_stamp.nsec,
+            fuzz_fs_source_stamp.size,
+            value + i);
+        sched_yield();
+    }
+
+    int status = 0;
+    while (waitpid(attacker, &status, 0) < 0 && errno == EINTR) {}
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) abort();
+
+    if (unlink(temp) != 0 && errno != ENOENT) abort();
+    uint64_t final_value = value ^ 0xd1b54a32d192ed03ULL;
+    compiler_persistent_hash_store(
+        "source.c",
+        fuzz_fs_source_stamp.sec,
+        fuzz_fs_source_stamp.nsec,
+        fuzz_fs_source_stamp.size,
+        final_value);
+
+    fuzz_fs_assert_guard();
+    uint64_t observed = 0;
+    if (!compiler_persistent_hash_lookup(
+            "source.c",
+            fuzz_fs_source_stamp.sec,
+            fuzz_fs_source_stamp.nsec,
+            fuzz_fs_source_stamp.size,
+            &observed) || observed != final_value) abort();
+}
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size > 512) return 0;
     fuzz_fs_init();
     uint64_t value = fuzz_u64(data, size);
     fuzz_fs_symlink_writes(value);
     fuzz_fs_concurrent_hashes(data, size);
+    fuzz_fs_symlink_race(value);
     return 0;
 }

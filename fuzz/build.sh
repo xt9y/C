@@ -51,7 +51,7 @@ for name in $TARGETS; do
         -std=c11 -O1 -g \
         -fno-omit-frame-pointer \
         -fno-sanitize-recover=all \
-        -fsanitize=fuzzer,address,undefined \
+        -fsanitize=fuzzer,address,leak,undefined \
         $COVERAGE_FLAGS \
         -D_XOPEN_SOURCE=700 \
         -D_POSIX_C_SOURCE=200809L \

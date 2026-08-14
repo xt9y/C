@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "fuzz_support.h"
@@ -24,6 +25,7 @@ static const char fuzz_build_script[] =
     "static size_t count, pos;\n"
     "static unsigned take(void) { return count ? bytes[(pos++) % count] : 0; }\n"
     "void build(C_Build *b) {\n"
+    "  count = 0; pos = 0;\n"
     "  FILE *f = fopen(\"scenario.bin\", \"rb\");\n"
     "  if (f) { count = fread(bytes, 1, sizeof(bytes), f); fclose(f); }\n"
     "  C_Target *targets[4] = {0};\n"
@@ -123,29 +125,43 @@ static void fuzz_reset_runtime_caches(void) {
     compiler_profile_reset();
 }
 
-static void fuzz_project_write_sources(unsigned value, uint64_t salt) {
+static void fuzz_project_write_header(unsigned value, uint64_t salt) {
     char path[PATH_MAX];
     char text[512];
-
     path_join(path, fuzz_project_root, "src/shared.h");
     int n = snprintf(text, sizeof(text), "#define FUZZ_VALUE %u\n#define FUZZ_SALT %lluULL\n",
                      value, (unsigned long long)salt);
     if (n < 0 || n >= (int)sizeof(text) ||
         !fuzz_write_file(path, (const uint8_t *)text, (size_t)n)) abort();
+}
+
+static void fuzz_project_write_a(uint64_t salt) {
+    char path[PATH_MAX];
+    char text[512];
+    path_join(path, fuzz_project_root, "src/a.c");
+    int n = snprintf(text, sizeof(text),
+                     "#include \"shared.h\"\nunsigned long long fuzz_a(void) { return FUZZ_SALT + %lluULL; }\n",
+                     (unsigned long long)(salt & 0xffffULL));
+    if (n < 0 || n >= (int)sizeof(text) ||
+        !fuzz_write_file(path, (const uint8_t *)text, (size_t)n)) abort();
+}
+
+static void fuzz_project_write_sources(unsigned value, uint64_t salt) {
+    char path[PATH_MAX];
+    char text[512];
+
+    fuzz_project_write_header(value, salt);
 
     path_join(path, fuzz_project_root, "src/main.c");
     static const char main_c[] = "#include \"shared.h\"\nint main(void) { return FUZZ_VALUE; }\n";
     if (!fuzz_write_file(path, (const uint8_t *)main_c, sizeof(main_c) - 1)) abort();
 
-    path_join(path, fuzz_project_root, "src/a.c");
-    n = snprintf(text, sizeof(text), "#include \"shared.h\"\nunsigned long long fuzz_a(void) { return FUZZ_SALT + %lluULL; }\n",
-                 (unsigned long long)(salt & 0xffffULL));
-    if (n < 0 || n >= (int)sizeof(text) ||
-        !fuzz_write_file(path, (const uint8_t *)text, (size_t)n)) abort();
+    fuzz_project_write_a(salt);
 
     path_join(path, fuzz_project_root, "src/b.c");
-    n = snprintf(text, sizeof(text), "#include \"shared.h\"\nunsigned long long fuzz_b(void) { return FUZZ_SALT ^ %lluULL; }\n",
-                 (unsigned long long)((salt >> 16) & 0xffffULL));
+    int n = snprintf(text, sizeof(text),
+                     "#include \"shared.h\"\nunsigned long long fuzz_b(void) { return FUZZ_SALT ^ %lluULL; }\n",
+                     (unsigned long long)((salt >> 16) & 0xffffULL));
     if (n < 0 || n >= (int)sizeof(text) ||
         !fuzz_write_file(path, (const uint8_t *)text, (size_t)n)) abort();
 }
@@ -157,6 +173,11 @@ static int fuzz_run_built_app(bool release) {
     int rc = compiler_run_process(&args, false);
     vec_free(&args);
     return rc;
+}
+
+static void fuzz_project_dispatch_and_check(int argc, char **argv, bool release, unsigned expected) {
+    if (compiler_dispatch(argc, argv) != 0) abort();
+    if (fuzz_run_built_app(release) != (int)expected) abort();
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
@@ -194,9 +215,25 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     else if (unity == 2) argv[argc++] = (char *)"--unity=auto";
     argv[argc] = NULL;
 
-    if (compiler_dispatch(argc, argv) != 0) abort();
-    int actual = fuzz_run_built_app(release);
-    if (actual != (int)expected) abort();
+    /* First pass exercises build.c loading/execution and dependency resolution. */
+    fuzz_project_dispatch_and_check(argc, argv, release, expected);
+
+    /* The exact same graph must be a true no-op after in-process stat caches reset. */
+    fuzz_reset_runtime_caches();
+    fuzz_project_dispatch_and_check(argc, argv, release, expected);
+    if (compiler_profile_compiled != 0 || compiler_profile_cache_hits != 0) abort();
+
+    /* Then invalidate either one TU or the shared-header fan-out. */
+    struct timespec delay = {0, 1000000L};
+    (void)nanosleep(&delay, NULL);
+    uint64_t changed_salt = salt ^ 0x9e3779b97f4a7c15ULL;
+    if (changed_salt == salt) ++changed_salt;
+    if (size > 3 && (data[3] & 1u)) fuzz_project_write_a(changed_salt);
+    else fuzz_project_write_header(expected, changed_salt);
+
+    fuzz_reset_runtime_caches();
+    fuzz_project_dispatch_and_check(argc, argv, release, expected);
+    if (compiler_profile_compiled == 0 && compiler_profile_cache_hits == 0) abort();
 
     if (chdir(oldcwd) != 0) abort();
     return 0;

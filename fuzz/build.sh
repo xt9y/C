@@ -19,7 +19,8 @@ fi
 
 mkdir -p "$OUT"
 
-awk '
+awk -v source="$ROOT/src/cli.c" '
+    BEGIN { print "#line 1 \"" source "\"" }
     $0 == "int main(int argc, char **argv) {" {
         print "int c_fuzz_cli_main(int argc, char **argv) {"
         next

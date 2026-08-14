@@ -1,0 +1,78 @@
+name: cJSON overhead benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/benchmark-cjson.yml
+      - benchmarks/common.py
+      - benchmarks/cjson/benchmark.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cjson-benchmark-publish
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake build-essential git time
+
+      - name: Benchmark cJSON
+        run: |
+          set -o pipefail
+          python3 benchmarks/cjson/benchmark.py | tee cjson-benchmark.log
+
+      - name: Publish job summary
+        run: cat benchmarks/cjson/README.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload raw benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cjson-benchmark-${{ github.run_number }}
+          path: |
+            cjson-benchmark.log
+            benchmarks/cjson/results.json
+            benchmarks/cjson/README.md
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Commit generated result
+        run: |
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main && break
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep $((attempt * 2))
+          done
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "main changed while benchmark was running; refusing stale publish"
+            exit 1
+          fi
+          git add -- benchmarks/cjson/results.json benchmarks/cjson/README.md
+          if git diff --cached --quiet; then
+            echo "Generated cJSON benchmark is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update cJSON benchmark [skip ci]"
+          for attempt in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            sleep $((attempt * 2))
+          done
+          exit 1

@@ -59,8 +59,8 @@ Real SDL3 static debug build, 219 translation units, 2 build jobs on a 4-vCPU Gi
 
 ![SDL3 build-time benchmark](benchmarks/sdl3/timings.svg)
 
-- Clean: `c` 36.48 s; CMake + Ninja 37.32 s.
-- Real 7-commit update: `c` 1.02 s; CMake + Ninja 1.18 s.
+- Clean: `c` 35.21 s; CMake + Ninja 35.98 s.
+- Real 7-commit update: `c` 946.9 ms; CMake + Ninja 1.10 s.
 - Rebuilt TUs: 4 / 219 with `c`; 4 / 219 with Ninja.
 
 Full generated report and raw measurements: [BENCHMARK.md](BENCHMARK.md)

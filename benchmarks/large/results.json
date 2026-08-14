@@ -1,0 +1,371 @@
+{
+  "c": {
+    "clean": {
+      "cpu_percent": 198.68921711997854,
+      "fs_inputs": 0,
+      "fs_outputs": 3288632,
+      "involuntary_context_switches": 3675,
+      "major_faults": 16,
+      "max_rss_kb": 502040,
+      "minor_faults": 5462560,
+      "samples": [
+        {
+          "cpu_percent": 198.68921711997854,
+          "fs_inputs": 0,
+          "fs_outputs": 3288632,
+          "involuntary_context_switches": 3675,
+          "major_faults": 16,
+          "max_rss_kb": 502040,
+          "minor_faults": 5462560,
+          "system_s": 27.54,
+          "user_s": 210.85,
+          "voluntary_context_switches": 16322,
+          "wall_ms": 119981.347481
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.0,
+        "max_ms": 119981.347481,
+        "median_ms": 119981.347481,
+        "min_ms": 119981.347481,
+        "stdev_ms": 0.0
+      },
+      "system_s": 27.54,
+      "user_s": 210.85,
+      "voluntary_context_switches": 16322,
+      "wall_ms": 119981.347481
+    },
+    "noop": {
+      "cpu_percent": 83.93388870037339,
+      "fs_inputs": 0,
+      "fs_outputs": 3760,
+      "involuntary_context_switches": 0,
+      "major_faults": 0,
+      "max_rss_kb": 5704,
+      "minor_faults": 1156,
+      "samples": [
+        {
+          "cpu_percent": 91.24559031836507,
+          "fs_inputs": 0,
+          "fs_outputs": 24400,
+          "involuntary_context_switches": 7,
+          "major_faults": 0,
+          "max_rss_kb": 5636,
+          "minor_faults": 1153,
+          "system_s": 0.07,
+          "user_s": 0.04,
+          "voluntary_context_switches": 4,
+          "wall_ms": 120.553771
+        },
+        {
+          "cpu_percent": 81.12900815228083,
+          "fs_inputs": 0,
+          "fs_outputs": 3760,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 5704,
+          "minor_faults": 1150,
+          "system_s": 0.02,
+          "user_s": 0.03,
+          "voluntary_context_switches": 4,
+          "wall_ms": 61.630237
+        },
+        {
+          "cpu_percent": 84.8664067819665,
+          "fs_inputs": 0,
+          "fs_outputs": 3760,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 5640,
+          "minor_faults": 1156,
+          "system_s": 0.02,
+          "user_s": 0.03,
+          "voluntary_context_switches": 4,
+          "wall_ms": 58.916127
+        },
+        {
+          "cpu_percent": 83.93388870037339,
+          "fs_inputs": 0,
+          "fs_outputs": 3760,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 5704,
+          "minor_faults": 1156,
+          "system_s": 0.03,
+          "user_s": 0.02,
+          "voluntary_context_switches": 4,
+          "wall_ms": 59.570694
+        },
+        {
+          "cpu_percent": 83.27060003895065,
+          "fs_inputs": 0,
+          "fs_outputs": 3760,
+          "involuntary_context_switches": 0,
+          "major_faults": 0,
+          "max_rss_kb": 5704,
+          "minor_faults": 1156,
+          "system_s": 0.03,
+          "user_s": 0.02,
+          "voluntary_context_switches": 4,
+          "wall_ms": 60.045202
+        }
+      ],
+      "stability": {
+        "cv_percent": 33.574682634430474,
+        "max_ms": 120.553771,
+        "median_ms": 60.045202,
+        "min_ms": 58.916127,
+        "stdev_ms": 24.221852523952773
+      },
+      "system_s": 0.03,
+      "user_s": 0.03,
+      "voluntary_context_switches": 4,
+      "wall_ms": 60.045202
+    }
+  },
+  "cmake_ninja": {
+    "clean": {
+      "cpu_percent": 196.5449924729127,
+      "fs_inputs": 0,
+      "fs_outputs": 7151368,
+      "involuntary_context_switches": 4047,
+      "major_faults": 0,
+      "max_rss_kb": 513404,
+      "minor_faults": 5891175,
+      "samples": [
+        {
+          "cpu_percent": 196.5449924729127,
+          "fs_inputs": 0,
+          "fs_outputs": 7151368,
+          "involuntary_context_switches": 4047,
+          "major_faults": 0,
+          "max_rss_kb": 513404,
+          "minor_faults": 5891175,
+          "system_s": 30.05,
+          "user_s": 220.49,
+          "voluntary_context_switches": 19763,
+          "wall_ms": 127472.085067
+        }
+      ],
+      "stability": {
+        "cv_percent": 0.0,
+        "max_ms": 127472.085067,
+        "median_ms": 127472.085067,
+        "min_ms": 127472.085067,
+        "stdev_ms": 0.0
+      },
+      "system_s": 30.05,
+      "user_s": 220.49,
+      "voluntary_context_switches": 19763,
+      "wall_ms": 127472.085067
+    },
+    "noop": {
+      "cpu_percent": 85.05561888985952,
+      "fs_inputs": 0,
+      "fs_outputs": 0,
+      "involuntary_context_switches": 1,
+      "major_faults": 0,
+      "max_rss_kb": 26644,
+      "minor_faults": 7273,
+      "samples": [
+        {
+          "cpu_percent": 85.16260769471754,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 2,
+          "major_faults": 0,
+          "max_rss_kb": 26700,
+          "minor_faults": 7269,
+          "system_s": 0.02,
+          "user_s": 0.03,
+          "voluntary_context_switches": 10,
+          "wall_ms": 58.711213
+        },
+        {
+          "cpu_percent": 85.05561888985952,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 26644,
+          "minor_faults": 7276,
+          "system_s": 0.01,
+          "user_s": 0.04,
+          "voluntary_context_switches": 10,
+          "wall_ms": 58.785064
+        },
+        {
+          "cpu_percent": 82.89321594791865,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 26612,
+          "minor_faults": 7274,
+          "system_s": 0.02,
+          "user_s": 0.03,
+          "voluntary_context_switches": 10,
+          "wall_ms": 60.318567
+        },
+        {
+          "cpu_percent": 68.7543583817493,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 1,
+          "major_faults": 1,
+          "max_rss_kb": 26608,
+          "minor_faults": 7270,
+          "system_s": 0.01,
+          "user_s": 0.03,
+          "voluntary_context_switches": 11,
+          "wall_ms": 58.17813
+        },
+        {
+          "cpu_percent": 86.64327540831813,
+          "fs_inputs": 0,
+          "fs_outputs": 0,
+          "involuntary_context_switches": 1,
+          "major_faults": 0,
+          "max_rss_kb": 26768,
+          "minor_faults": 7273,
+          "system_s": 0.02,
+          "user_s": 0.03,
+          "voluntary_context_switches": 10,
+          "wall_ms": 57.707883
+        }
+      ],
+      "stability": {
+        "cv_percent": 1.4988379050153136,
+        "max_ms": 60.318567,
+        "median_ms": 58.711213,
+        "min_ms": 57.707883,
+        "stdev_ms": 0.8804199544141643
+      },
+      "system_s": 0.02,
+      "user_s": 0.03,
+      "voluntary_context_switches": 10,
+      "wall_ms": 58.711213
+    }
+  },
+  "editable_source_count": 1639,
+  "jobs": 2,
+  "machine": {
+    "cmake": "cmake version 3.31.6",
+    "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "cpu_count": 4,
+    "cpu_model": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz",
+    "date": "2026-08-14",
+    "ninja": "1.13.2",
+    "platform": "Linux runnervmvrwv9 6.17.0-1020-azure #20~24.04.1-Ubuntu SMP Fri Jun 19 20:09:14 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux"
+  },
+  "method": "same CMake-derived source set and semantic flags; Ninja object target is followed by a timestamp-aware static archive step to match c static-library output",
+  "points": [
+    {
+      "c": {
+        "cpu_percent": 89.4226326512709,
+        "fs_inputs": 0,
+        "fs_outputs": 1273328,
+        "involuntary_context_switches": 85,
+        "major_faults": 0,
+        "max_rss_kb": 179576,
+        "minor_faults": 46717,
+        "system_s": 0.62,
+        "user_s": 0.7,
+        "voluntary_context_switches": 25,
+        "wall_ms": 1476.136366
+      },
+      "changed_sources": 1,
+      "cmake_ninja": {
+        "cpu_percent": 98.13107368866129,
+        "fs_inputs": 0,
+        "fs_outputs": 5114688,
+        "involuntary_context_switches": 374,
+        "major_faults": 0,
+        "max_rss_kb": 164768,
+        "minor_faults": 198501,
+        "system_s": 2.33,
+        "user_s": 1.73,
+        "voluntary_context_switches": 104,
+        "wall_ms": 4137.323528
+      },
+      "rebuilt_tus": 1,
+      "source_paths": [
+        "packet-bthcrp.c"
+      ]
+    },
+    {
+      "c": {
+        "cpu_percent": 130.19533674401495,
+        "fs_inputs": 0,
+        "fs_outputs": 1280008,
+        "involuntary_context_switches": 128,
+        "major_faults": 0,
+        "max_rss_kb": 179620,
+        "minor_faults": 73731,
+        "system_s": 0.78,
+        "user_s": 1.54,
+        "voluntary_context_switches": 106,
+        "wall_ms": 1781.937862
+      },
+      "changed_sources": 10,
+      "cmake_ninja": {
+        "cpu_percent": 110.60317130170101,
+        "fs_inputs": 0,
+        "fs_outputs": 5121368,
+        "involuntary_context_switches": 399,
+        "major_faults": 0,
+        "max_rss_kb": 164680,
+        "minor_faults": 226515,
+        "system_s": 2.46,
+        "user_s": 2.65,
+        "voluntary_context_switches": 213,
+        "wall_ms": 4620.120689
+      },
+      "rebuilt_tus": 10,
+      "source_paths": [
+        "packet-bthcrp.c",
+        "packet-tr.c",
+        "packet-ippusb.c",
+        "packet-pvfs2.c",
+        "packet-rohc.c",
+        "packet-hazelcast.c",
+        "packet-epl-profile-parser.c",
+        "packet-ppi.c",
+        "packet-dect-dlc.c",
+        "packet-geonw.c"
+      ]
+    }
+  ],
+  "project": "Wireshark dissectors",
+  "purpose": "large translation-unit stress",
+  "revision": "wireshark-4.4.9",
+  "semantic_flags": [
+    "-DG_DISABLE_DEPRECATED",
+    "-DG_DISABLE_SINGLE_INCLUDES",
+    "-DWS_BUILD_DLL",
+    "-DWS_DEBUG",
+    "-DWS_DEBUG_UTF_8",
+    "-I/tmp/c-wireshark-large-aw6euzyh/meta",
+    "-I/tmp/c-wireshark-large-aw6euzyh/wireshark",
+    "-I/tmp/c-wireshark-large-aw6euzyh/wireshark/include",
+    "-isystem",
+    "/usr/include/glib-2.0",
+    "-isystem",
+    "/usr/lib/x86_64-linux-gnu/glib-2.0/include",
+    "-isystem",
+    "/tmp/c-wireshark-large-aw6euzyh/meta/epan/dissectors",
+    "-isystem",
+    "/tmp/c-wireshark-large-aw6euzyh/wireshark/epan/dissectors",
+    "-isystem",
+    "/tmp/c-wireshark-large-aw6euzyh/wireshark/epan",
+    "-fvisibility=hidden",
+    "-fno-strict-overflow",
+    "-fexcess-precision=fast",
+    "-fmacro-prefix-map=/tmp/c-wireshark-large-aw6euzyh/wireshark/=",
+    "-fmacro-prefix-map=/tmp/c-wireshark-large-aw6euzyh/meta/=",
+    "-std=gnu11",
+    "-fPIC"
+  ],
+  "source_count": 1640,
+  "target": "dissectors"
+}

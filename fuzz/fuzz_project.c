@@ -180,10 +180,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     bool object_cache = size > 1 && (data[1] & 1u);
     unsigned unity = size > 2 ? data[2] % 3u : 0u;
 
-    char *argv[12];
+    char *argv[13];
     int argc = 0;
     argv[argc++] = (char *)"c";
     argv[argc++] = (char *)"build";
+    argv[argc++] = (char *)"app";
     argv[argc++] = (char *)"--cc";
     argv[argc++] = (char *)"clang";
     argv[argc++] = (char *)"--jobs=2";

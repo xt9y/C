@@ -11,25 +11,54 @@ permissions:
 jobs:
   fuzz:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Clang
+      - name: Install Clang and LLVM coverage tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang
+          sudo apt-get install -y clang llvm
 
-      - name: Build fuzz targets with ASan + UBSan
+      - name: Build fuzz targets with ASan + UBSan + LSan + coverage
         env:
           CC: clang
+          FUZZ_COVERAGE: 1
         run: ./fuzz/build.sh
 
       - name: Fuzz smoke
+        env:
+          FUZZ_PROFILE_DIR: ${{ github.workspace }}/fuzz/profiles
         run: |
           ./fuzz/run-one.sh lockfile 20
           ./fuzz/run-one.sh depfile 20
           ./fuzz/run-one.sh cache 20
+          ./fuzz/run-one.sh fs 20
+          ./fuzz/run-one.sh project 20
+
+      - name: Publish source coverage summary
+        env:
+          FUZZ_PROFILE_DIR: ${{ github.workspace }}/fuzz/profiles
+        run: |
+          ./fuzz/coverage-report.sh
+          {
+            echo '### Fuzz coverage'
+            echo
+            echo 'Production `src/` coverage reached by the sanitizer fuzz corpus:'
+            echo
+            echo '```text'
+            cat fuzz/coverage/coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload fuzz coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-coverage-${{ github.run_id }}
+          path: fuzz/coverage/
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Upload crash reproducers
         if: failure()

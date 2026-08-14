@@ -39,10 +39,6 @@ static void fuzz_fs_init(void) {
     if (fuzz_fs_ready) return;
     if (setenv("C_CACHE_DIR", ".c-fuzz-fs-cache", 1) != 0) abort();
 
-    if (!fuzz_write_file(fuzz_fs_victim, (const uint8_t *)fuzz_fs_guard, sizeof(fuzz_fs_guard) - 1)) {
-        /* The path is initialized below; this first call is intentionally skipped. */
-    }
-
     char cwd[PATH_MAX];
     if (!getcwd(cwd, sizeof(cwd))) abort();
     path_join(fuzz_fs_victim, cwd, "victim.txt");

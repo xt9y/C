@@ -13,9 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [lockfile, depfile, cache]
+        target: [lockfile, depfile, cache, fs, project]
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +24,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang
 
-      - name: Build fuzz target with ASan + UBSan
+      - name: Build fuzz target with ASan + UBSan + LSan
         env:
           CC: clang
         run: ./fuzz/build.sh "${{ matrix.target }}"

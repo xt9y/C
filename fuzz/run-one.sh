@@ -10,11 +10,15 @@ CORPUS="$ROOT/fuzz/corpus/$TARGET"
 ARTIFACT_ROOT=${FUZZ_ARTIFACT_DIR:-"$ROOT/fuzz/artifacts"}
 ARTIFACT_DIR="$ARTIFACT_ROOT/$TARGET"
 DICT=
+TIMEOUT=5
+MAX_LEN=65536
 
 case "$TARGET" in
     lockfile) DICT="$ROOT/fuzz/dictionaries/lockfile.dict" ;;
     depfile) DICT="$ROOT/fuzz/dictionaries/depfile.dict" ;;
     cache) ;;
+    fs) TIMEOUT=10; MAX_LEN=512 ;;
+    project) TIMEOUT=15; MAX_LEN=512 ;;
     *) echo "unknown fuzz target: $TARGET" >&2; exit 2 ;;
 esac
 
@@ -27,26 +31,29 @@ mkdir -p "$ARTIFACT_DIR"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT HUP INT TERM
 
-export ASAN_OPTIONS="abort_on_error=1:detect_leaks=0:symbolize=1"
+export ASAN_OPTIONS="abort_on_error=1:detect_leaks=1:symbolize=1"
+export LSAN_OPTIONS="exitcode=23:report_objects=1"
 export UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1"
 
+if [ -n "${FUZZ_PROFILE_DIR:-}" ]; then
+    mkdir -p "$FUZZ_PROFILE_DIR"
+    export LLVM_PROFILE_FILE="$FUZZ_PROFILE_DIR/${TARGET}-%p.profraw"
+fi
+
 run_fuzzer() {
+    set -- \
+        "$CORPUS" \
+        -max_total_time="$SECONDS" \
+        -timeout="$TIMEOUT" \
+        -max_len="$MAX_LEN" \
+        -rss_limit_mb=2048 \
+        -detect_leaks=1 \
+        -print_final_stats=1 \
+        -artifact_prefix="$ARTIFACT_DIR/"
     if [ -n "$DICT" ]; then
-        "$BIN" "$CORPUS" \
-            -dict="$DICT" \
-            -max_total_time="$SECONDS" \
-            -timeout=5 \
-            -rss_limit_mb=2048 \
-            -print_final_stats=1 \
-            -artifact_prefix="$ARTIFACT_DIR/"
-    else
-        "$BIN" "$CORPUS" \
-            -max_total_time="$SECONDS" \
-            -timeout=5 \
-            -rss_limit_mb=2048 \
-            -print_final_stats=1 \
-            -artifact_prefix="$ARTIFACT_DIR/"
+        set -- "$@" -dict="$DICT"
     fi
+    "$BIN" "$@"
 }
 
 (

@@ -1,2 +1,4 @@
 build/
 .DS_Store
+fuzz/.build/
+fuzz/artifacts/

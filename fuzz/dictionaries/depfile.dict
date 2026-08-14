@@ -1,0 +1,7 @@
+colon=":"
+space=" "
+backslash="\\"
+newline="\x0a"
+dot_h=".h"
+dot_c=".c"
+object=".o"

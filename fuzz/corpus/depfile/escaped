@@ -1,0 +1,2 @@
+build/foo.o: src/foo.c dir/space\ name.h \
+ include/continued.h

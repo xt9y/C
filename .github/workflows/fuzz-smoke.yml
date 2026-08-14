@@ -1,0 +1,41 @@
+name: Fuzz smoke
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+
+      - name: Build fuzz targets with ASan + UBSan
+        env:
+          CC: clang
+        run: ./fuzz/build.sh
+
+      - name: Fuzz smoke
+        run: |
+          ./fuzz/run-one.sh lockfile 20
+          ./fuzz/run-one.sh depfile 20
+          ./fuzz/run-one.sh cache 20
+
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-smoke-crashes-${{ github.run_id }}
+          path: fuzz/artifacts/
+          if-no-files-found: ignore
+          retention-days: 30

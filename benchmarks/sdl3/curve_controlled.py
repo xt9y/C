@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -14,7 +13,7 @@ import benchmark_stats as stats
 # Dense enough to show the shape of the curve without turning the manually
 # triggered benchmark into a very long CI job. Every point is cumulative.
 TARGET_FILES = (7, 21, 42, 63, 105, 147, 189)
-RUNS = 3
+RUNS = 2
 CHANGE = stats.CHANGE
 
 
@@ -23,7 +22,7 @@ def reset_endpoint(repo):
 
 
 def ordered_sources(meta, sdl):
-    """Return endpoint SDL translation units in a deterministic mixed order."""
+    """Return editable endpoint SDL translation units in a deterministic mixed order."""
     root = sdl.resolve()
     sources = []
     seen = set()
@@ -32,6 +31,8 @@ def ordered_sources(meta, sdl):
         try:
             rel = str(source.relative_to(root))
         except ValueError:
+            # Generated translation units can still participate in the clean
+            # build; they simply are not candidates for controlled source edits.
             continue
         if rel in seen:
             continue
@@ -100,9 +101,10 @@ def main():
         source_count, _ = impl.generate_build_c(meta, cproj, sdl)
         sources = ordered_sources(meta, sdl)
 
-        if len(sources) != source_count:
+        if len(sources) < max(TARGET_FILES):
             raise RuntimeError(
-                f"controlled curve found {len(sources)} endpoint sources; expected {source_count}"
+                f"controlled curve has only {len(sources)} editable endpoint sources; "
+                f"need at least {max(TARGET_FILES)}"
             )
         if max(TARGET_FILES) >= source_count:
             raise RuntimeError(
@@ -164,6 +166,7 @@ def main():
         result = {
             "endpoint": CHANGE,
             "source_count": source_count,
+            "editable_source_count": len(sources),
             "jobs": jobs,
             "runs_per_point": RUNS,
             "targets": list(TARGET_FILES),

@@ -2,7 +2,7 @@
 
 import benchmark_stats as stats
 from benchmark_stats import main as baseline_main
-from curve_history import main as curve_main
+from curve_controlled import main as curve_main
 
 
 _base_cmake_args = stats.cmake_args

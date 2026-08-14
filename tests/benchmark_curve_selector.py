@@ -20,7 +20,7 @@ def test_controlled_targets_and_markers():
     assert curve_controlled.TARGET_FILES == (7, 21, 42, 63, 105, 147, 189)
     assert list(curve_controlled.TARGET_FILES) == sorted(set(curve_controlled.TARGET_FILES))
     assert curve_controlled.marker_for(Path("a.c")).startswith(b"\n/*")
-    assert curve_controlled.marker_for(Path("a.S")).startswith(b"\n/*")
+    assert curve_controlled.marker_for(Path("a.S")).startswith(b"\n#")
     assert curve_controlled.marker_for(Path("a.s")).startswith(b"\n#")
 
     with tempfile.TemporaryDirectory(prefix="curve-controlled-test-") as directory:

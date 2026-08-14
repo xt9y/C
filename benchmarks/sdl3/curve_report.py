@@ -78,9 +78,10 @@ def augment(result, input_path, out_dir):
         "c_ms":result["c"]["real_update"]["wall_ms"],"ninja_ms":result["cmake_ninja"]["real_update"]["wall_ms"]
     }]
     for p in curve["points"]:
+        applied = p.get("applied_files", p["change_stats"]["files_changed"])
         points.append({
             "kind":"history","target_tus":p["target_tus"],"rebuilt_tus":p["rebuilt_tus"],
-            "range":f"{p['change_stats']['commits']} commits / {p['change_stats']['files_changed']} files",
+            "range":f"{p['change_stats']['commits']} commits / {applied} applied files",
             "base":p["base"],"c_ms":p["c"]["wall_ms"],"ninja_ms":p["cmake_ninja"]["wall_ms"]
         })
     points.append({
@@ -99,11 +100,11 @@ def augment(result, input_path, out_dir):
         "## Scaling curve\n\n"
         "![SDL3 incremental scaling](benchmarks/sdl3/timings.svg)\n\n"
         "The x-axis is the **actual measured number of translation units rebuilt**. "
-        "Historical points use increasingly distant real SDL commits ending at one fixed revision.\n\n"
+        "For extra history points, the benchmark keeps one fixed 219-TU endpoint tree/build graph and replaces only files that were genuinely modified in an older real SDL range with their historical contents. Additions and deletions stay at the endpoint so the source set remains comparable.\n\n"
         "| Rebuilt TUs | SDL range | `c` | CMake + Ninja | Result |\n"
         "| ---: | --- | ---: | ---: | --- |\n" + rows + "\n\n"
         f"Each extra history point is measured {curve['runs_per_point']} times. "
-        "Ranges are selected from Ninja's real dependency graph. The benchmark refuses to publish if the tools rebuild different TU counts.\n\n"
+        "Candidate ranges are selected from Ninja's real endpoint dependency graph. Points that do not build cleanly or rebuild different TU counts between the tools are skipped instead of invalidating the whole report.\n\n"
     )
     summary = out/"summary.md"
     text = summary.read_text()
@@ -112,6 +113,7 @@ def augment(result, input_path, out_dir):
 
     result["scaling"] = {
         "endpoint": curve["endpoint"],
+        "history_mode": curve.get("history_mode"),
         "runs_per_history_point": curve["runs_per_point"],
         "targets": curve["targets"],
         "points": points,

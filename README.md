@@ -59,8 +59,8 @@ Real C projects, identical CMake-derived source sets and semantic compile flags.
 
 | Workload | `c` | CMake + Ninja | Result |
 | --- | ---: | ---: | --- |
-| cJSON fresh setup | 57.3 ms | 203.1 ms | `c` 71.8% faster |
-| cJSON no-op (1 TU) | 4.1 ms | 5.2 ms | `c` 21.0% faster |
+| cJSON fresh setup | 58.6 ms | 214.4 ms | `c` 72.6% faster |
+| cJSON no-op (1 TU) | 4.1 ms | 5.2 ms | `c` 21.5% faster |
 | SDL3 no-op (219 TUs) | 15.9 ms | 18.6 ms | `c` 14.4% faster |
 | SDL3 clean (219 TUs) | 36.59 s | 37.09 s | `c` 1.3% faster |
 | libcurl common-header fan-out (192 TUs) | 6.50 s | 6.74 s | `c` 3.7% faster |

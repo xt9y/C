@@ -6,8 +6,8 @@ _Generated from pinned, reproducible benchmark workflows. Do not edit benchmark 
 
 | Workload | `c` | CMake + Ninja | Result |
 | --- | ---: | ---: | --- |
-| cJSON fresh setup | 57.3 ms | 203.1 ms | `c` 71.8% faster |
-| cJSON no-op (1 TU) | 4.1 ms | 5.2 ms | `c` 21.0% faster |
+| cJSON fresh setup | 58.6 ms | 214.4 ms | `c` 72.6% faster |
+| cJSON no-op (1 TU) | 4.1 ms | 5.2 ms | `c` 21.5% faster |
 | SDL3 no-op (219 TUs) | 15.9 ms | 18.6 ms | `c` 14.4% faster |
 | SDL3 clean (219 TUs) | 36.59 s | 37.09 s | `c` 1.3% faster |
 | libcurl common-header fan-out (192 TUs) | 6.50 s | 6.74 s | `c` 3.7% faster |
@@ -101,10 +101,10 @@ Pinned cJSON v1.7.19, one C translation unit. Lower is better.
 
 | Test | `c` | CMake + Ninja |
 | --- | ---: | ---: |
-| Fresh build-system setup | 57.3 ms | 203.1 ms |
-| Clean build | 167.5 ms | 213.7 ms |
+| Fresh build-system setup | 58.6 ms | 214.4 ms |
+| Clean build | 169.1 ms | 217.6 ms |
 | No changes | 4.1 ms | 5.2 ms |
-| One source changed | 167.9 ms | 215.5 ms |
+| One source changed | 170.5 ms | 220.0 ms |
 
 No-op is the median of 30 runs. Object caching is disabled. Both systems rebuild exactly one TU after the source edit.
 

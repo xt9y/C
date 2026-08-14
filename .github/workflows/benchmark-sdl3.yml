@@ -2,6 +2,16 @@ name: SDL3 benchmark
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/benchmark-sdl3.yml
+      - benchmarks/sdl3/benchmark.py
+      - benchmarks/sdl3/benchmark_impl.py
+      - benchmarks/sdl3/benchmark_stats.py
+      - benchmarks/sdl3/curve_controlled.py
+      - benchmarks/sdl3/curve_report.py
+      - benchmarks/sdl3/render_report.py
 
 permissions:
   contents: write
@@ -48,69 +58,14 @@ jobs:
             benchmark-report/benchmark.log \
             benchmark-report
 
-      - name: Update tracked benchmark files
+      - name: Update tracked benchmark suite
         run: |
           cp benchmark-report/timings.svg benchmarks/sdl3/timings.svg
           cp benchmark-report/resources.svg benchmarks/sdl3/resources.svg
           cp benchmark-report/results.json benchmarks/sdl3/results.json
+          cp benchmark-report/summary.md benchmarks/sdl3/report.md
           rm -f benchmarks/sdl3/results-*.json
-
-          {
-            echo '# SDL3 benchmark'
-            echo
-            echo '_Generated automatically by the manually-triggered SDL3 benchmark GitHub Actions workflow. Do not edit benchmark numbers by hand._'
-            echo
-            tail -n +2 benchmark-report/summary.md
-            echo
-            echo 'Raw measurements and every sample: [`benchmarks/sdl3/results.json`](benchmarks/sdl3/results.json)'
-          } > BENCHMARK.md
-
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          START = '<!-- sdl3-benchmark:start -->'
-          END = '<!-- sdl3-benchmark:end -->'
-
-          def fmt(ms):
-              return f'{ms / 1000:.2f} s' if ms >= 1000 else f'{ms:.1f} ms'
-
-          result = json.loads(Path('benchmark-report/results.json').read_text())
-          c = result['c']
-          ninja = result['cmake_ninja']
-          change = result['change_stats']
-
-          section = f'''{START}
-          ## SDL3 benchmark
-
-          Real SDL3 static debug build, {result['source_count']} translation units, {result['jobs']} build jobs on a {result['machine']['cpu_count']}-vCPU GitHub Actions runner.
-
-          ![SDL3 build-time benchmark](benchmarks/sdl3/timings.svg)
-
-          - Clean: `c` {fmt(c['clean']['wall_ms'])}; CMake + Ninja {fmt(ninja['clean']['wall_ms'])}.
-          - Real {change['commits']}-commit update: `c` {fmt(c['real_update']['wall_ms'])}; CMake + Ninja {fmt(ninja['real_update']['wall_ms'])}.
-          - Rebuilt TUs: {c['translation_units_rebuilt']} / {result['source_count']} with `c`; {ninja['translation_units_rebuilt']} / {result['source_count']} with Ninja.
-
-          Full generated report and raw measurements: [BENCHMARK.md](BENCHMARK.md)
-          {END}'''
-          section = '\n'.join(line[10:] if line.startswith('          ') else line for line in section.splitlines())
-
-          path = Path('README.md')
-          text = path.read_text()
-          if START in text and END in text:
-              before, rest = text.split(START, 1)
-              _, after = rest.split(END, 1)
-              text = before.rstrip() + '\n\n' + section + after
-          else:
-              start = text.find('## SDL3 benchmark')
-              if start < 0:
-                  raise RuntimeError('README benchmark section not found')
-              end = text.find('\n## ', start + 1)
-              if end < 0:
-                  end = len(text)
-              text = text[:start].rstrip() + '\n\n' + section + '\n\n' + text[end:].lstrip()
-          path.write_text(text)
-          PY
+          python3 benchmarks/render_suite.py
 
       - name: Publish benchmark summary
         run: cat benchmark-report/summary.md >> "$GITHUB_STEP_SUMMARY"
@@ -126,7 +81,11 @@ jobs:
 
       - name: Commit generated benchmark
         run: |
-          git fetch origin main
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main && break
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep $((attempt * 2))
+          done
           if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
             echo "main changed while the benchmark was running; refusing to publish stale results"
             echo "Run the workflow again from the latest main."
@@ -138,7 +97,8 @@ jobs:
             README.md \
             benchmarks/sdl3/timings.svg \
             benchmarks/sdl3/resources.svg \
-            benchmarks/sdl3/results.json
+            benchmarks/sdl3/results.json \
+            benchmarks/sdl3/report.md
           git add -u -- benchmarks/sdl3
 
           if git diff --cached --quiet; then
@@ -148,5 +108,9 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update SDL3 benchmark [skip ci]"
-          git push origin HEAD:main
+          git commit -m "Update benchmark suite [skip ci]"
+          for attempt in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            sleep $((attempt * 2))
+          done
+          exit 1

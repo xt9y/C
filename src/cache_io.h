@@ -16,6 +16,7 @@
 #endif
 
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -42,6 +43,13 @@
  *
  * Therefore no cached cbuild.h file or symlink is created, while changes to
  * the real header still invalidate the compiled build.c module.
+ *
+ * This shim also protects the build system's atomic cache writers. Several
+ * production paths use <destination>.tmp.<pid> followed by rename(). Opening
+ * those predictable temporary names through stdio used to follow a planted
+ * symlink. For .tmp. writes we unlink the name and recreate it with O_EXCL
+ * (and O_NOFOLLOW where available), so a racing symlink can make the write
+ * fail but cannot redirect it into another file.
  */
 
 static int c_is_cached_build_header(const char *path) {
@@ -50,6 +58,38 @@ static int c_is_cached_build_header(const char *path) {
     size_t n = strlen(path);
     size_t s = sizeof(suffix) - 1;
     return n >= s && !strcmp(path + n - s, suffix);
+}
+
+static int c_is_atomic_temp_write(const char *path, const char *mode) {
+    if (!path || !mode) return 0;
+    if (strcmp(mode, "w") && strcmp(mode, "wb")) return 0;
+    const char *base = strrchr(path, '/');
+    base = base ? base + 1 : path;
+    return strstr(base, ".tmp.") != NULL;
+}
+
+static FILE *c_exclusive_temp_fopen(const char *path, const char *mode) {
+    if (unlink(path) != 0 && errno != ENOENT) return NULL;
+
+    int flags = O_WRONLY | O_CREAT | O_EXCL;
+#ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+#endif
+#ifdef O_NOFOLLOW
+    flags |= O_NOFOLLOW;
+#endif
+
+    int fd = open(path, flags, 0600);
+    if (fd < 0) return NULL;
+    FILE *f = fdopen(fd, mode);
+    if (!f) {
+        int saved = errno;
+        close(fd);
+        unlink(path);
+        errno = saved;
+        return NULL;
+    }
+    return f;
 }
 
 static int c_copy_readable_path(const char *path, char out[PATH_MAX]) {
@@ -138,6 +178,7 @@ static FILE *c_direct_header_fopen(const char *path, const char *mode) {
         }
     }
 
+    if (c_is_atomic_temp_write(path, mode)) return c_exclusive_temp_fopen(path, mode);
     return fopen(path, mode);
 }
 

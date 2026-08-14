@@ -52,19 +52,25 @@ c run
 
 Docs (Thanks to AI): https://xt9y.de/c.html
 
-<!-- sdl3-benchmark:start -->
-## SDL3 benchmark
+<!-- benchmark-suite:start -->
+## Performance
 
-Real SDL3 static debug build, 219 translation units, 2 build jobs on a 4-vCPU GitHub Actions runner.
+Real C projects, identical CMake-derived source sets and semantic compile flags. Lower is better.
 
-![SDL3 build-time benchmark](benchmarks/sdl3/timings.svg)
+| Workload | `c` | CMake + Ninja | Result |
+| --- | ---: | ---: | --- |
+| cJSON fresh setup | 57.3 ms | 203.1 ms | `c` 71.8% faster |
+| cJSON no-op (1 TU) | 4.1 ms | 5.2 ms | `c` 21.0% faster |
+| SDL3 no-op (219 TUs) | 15.9 ms | 18.6 ms | `c` 14.4% faster |
+| SDL3 clean (219 TUs) | 36.59 s | 37.09 s | `c` 1.3% faster |
+| libcurl common-header fan-out (192 TUs) | 6.50 s | 6.74 s | `c` 3.7% faster |
+| Wireshark 10 source changes | 1.78 s | 4.62 s | `c` 61.4% faster |
+| Wireshark clean (1640 TUs) | 119.98 s | 127.47 s | `c` 5.9% faster |
 
-- Clean: `c` 30.51 s; CMake + Ninja 31.27 s.
-- Real 7-commit update: `c` 858.4 ms; CMake + Ninja 982.0 ms.
-- Rebuilt TUs: 4 / 219 with `c`; 4 / 219 with Ninja.
+The projects are pinned and raw samples are checked in. Hosted-runner results should be compared **within a row**, not across separate workflow runs.
 
-Full generated report and raw measurements: [BENCHMARK.md](BENCHMARK.md)
-<!-- sdl3-benchmark:end -->
+Full methodology, scaling data and raw measurements: [BENCHMARK.md](BENCHMARK.md)
+<!-- benchmark-suite:end -->
 
 ## Notes
 

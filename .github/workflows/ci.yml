@@ -2,17 +2,406 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BENCH_JOBS: 2
 
 jobs:
-  test:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  linux:
+    name: Linux
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Build
         run: make
       - name: Test
         run: make test
+
+  macos:
+    name: macOS
+    needs: linux
+    if: github.event_name != 'schedule'
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make
+      - name: Test
+        run: make test
+
+  fuzz-smoke:
+    name: Fuzz smoke
+    needs: macos
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang and LLVM coverage tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: Prepare fuzz harness
+        run: cp -R .github/ci/fuzz fuzz
+
+      - name: Build fuzz targets with sanitizers and coverage
+        env:
+          CC: clang
+          FUZZ_COVERAGE: 1
+        run: ./fuzz/build.sh
+
+      - name: Fuzz smoke
+        env:
+          FUZZ_PROFILE_DIR: ${{ github.workspace }}/fuzz/profiles
+        run: |
+          ./fuzz/run-one.sh lockfile 20
+          ./fuzz/run-one.sh depfile 20
+          ./fuzz/run-one.sh cache 20
+          ./fuzz/run-one.sh fs 20
+          ./fuzz/run-one.sh project 20
+
+      - name: Coverage
+        env:
+          FUZZ_PROFILE_DIR: ${{ github.workspace }}/fuzz/profiles
+        run: ./fuzz/coverage-report.sh
+
+      - name: Publish fuzz summary
+        if: success() || failure()
+        run: |
+          {
+            echo '## Fuzz coverage'
+            echo
+            echo 'Production `src/` coverage reached by the sanitizer fuzz corpus:'
+            echo
+            echo '```text'
+            cat fuzz/coverage/coverage.txt 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload fuzz evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-smoke-${{ github.run_id }}
+          path: |
+            fuzz/coverage/
+            fuzz/artifacts/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  fuzz-nightly:
+    name: Nightly fuzz (${{ matrix.target }})
+    if: github.event_name == 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [lockfile, depfile, cache, fs, project]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+      - name: Prepare fuzz harness
+        run: cp -R .github/ci/fuzz fuzz
+      - name: Build target
+        env:
+          CC: clang
+        run: ./fuzz/build.sh "${{ matrix.target }}"
+      - name: Fuzz for 10 minutes
+        run: ./fuzz/run-one.sh "${{ matrix.target }}" 600
+      - name: Upload crash reproducer
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-${{ matrix.target }}-crash-${{ github.run_id }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  benchmark-cjson:
+    name: cJSON benchmark
+    needs: fuzz-smoke
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake build-essential git time
+      - name: Prepare benchmark harness
+        run: cp -R .github/ci/benchmarks benchmarks
+      - name: Benchmark cJSON
+        run: |
+          set -o pipefail
+          python3 benchmarks/cjson/benchmark.py | tee cjson-benchmark.log
+      - name: Render readable benchmark table
+        run: |
+          mkdir -p benchmark-artifact
+          python3 .github/ci/table_svg.py benchmarks/cjson/README.md benchmark-artifact cjson
+          cp benchmarks/cjson/results.json benchmark-artifact/results.json
+          cp cjson-benchmark.log benchmark-artifact/benchmark.log
+      - name: Upload benchmark
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-cjson
+          path: benchmark-artifact/
+          if-no-files-found: error
+          retention-days: 30
+
+  benchmark-fanout:
+    name: libcurl fan-out benchmark
+    needs: benchmark-cjson
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake build-essential git time
+      - name: Prepare benchmark harness
+        run: cp -R .github/ci/benchmarks benchmarks
+      - name: Benchmark libcurl header fan-out
+        run: |
+          set -o pipefail
+          python3 benchmarks/fanout/benchmark.py | tee fanout-benchmark.log
+      - name: Render readable benchmark table
+        run: |
+          mkdir -p benchmark-artifact
+          python3 .github/ci/table_svg.py benchmarks/fanout/README.md benchmark-artifact fanout
+          cp benchmarks/fanout/results.json benchmark-artifact/results.json
+          cp fanout-benchmark.log benchmark-artifact/benchmark.log
+      - name: Upload benchmark
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-fanout
+          path: benchmark-artifact/
+          if-no-files-found: error
+          retention-days: 30
+
+  benchmark-sdl3:
+    name: SDL3 benchmark
+    needs: benchmark-fanout
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake build-essential git time
+      - name: Machine
+        run: |
+          uname -a
+          lscpu | sed -n '1,20p'
+          cc --version | head -1
+          cmake --version | head -1
+          ninja --version
+      - name: Prepare benchmark harness
+        run: cp -R .github/ci/benchmarks benchmarks
+      - name: Benchmark and profile SDL3
+        run: |
+          mkdir -p benchmark-report
+          set -o pipefail
+          python3 benchmarks/sdl3/benchmark.py | tee benchmark-report/benchmark.log
+      - name: Build SDL3 report
+        run: |
+          python3 benchmarks/sdl3/render_report.py benchmark-report/benchmark.log benchmark-report
+          mkdir -p benchmark-artifact
+          python3 .github/ci/table_svg.py benchmark-report/summary.md benchmark-artifact sdl3
+          cp benchmark-report/results.json benchmark-artifact/results.json
+          cp benchmark-report/benchmark.log benchmark-artifact/benchmark.log
+          cp benchmark-report/timings.svg benchmark-artifact/sdl3-timings.svg
+          cp benchmark-report/resources.svg benchmark-artifact/sdl3-resources.svg
+          {
+            echo
+            echo '## Additional charts'
+            echo
+            echo '![SDL3 timings](__ASSET_BASE__/__RUN_PREFIX__sdl3-timings.svg)'
+            echo
+            echo '![SDL3 resources](__ASSET_BASE__/__RUN_PREFIX__sdl3-resources.svg)'
+          } >> benchmark-artifact/summary.md
+      - name: Upload benchmark
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-sdl3
+          path: benchmark-artifact/
+          if-no-files-found: error
+          retention-days: 30
+
+  benchmark-large:
+    name: Wireshark benchmark
+    needs: benchmark-sdl3
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build cmake build-essential git time flex bison perl python3 \
+            libglib2.0-dev libgcrypt20-dev libc-ares-dev libpcre2-dev
+      - name: Prepare benchmark harness
+        run: cp -R .github/ci/benchmarks benchmarks
+      - name: Benchmark Wireshark dissectors
+        run: |
+          set -o pipefail
+          python3 benchmarks/large/benchmark.py | tee large-benchmark.log
+      - name: Render readable benchmark table
+        run: |
+          mkdir -p benchmark-artifact
+          python3 .github/ci/table_svg.py benchmarks/large/README.md benchmark-artifact wireshark
+          cp benchmarks/large/results.json benchmark-artifact/results.json
+          cp large-benchmark.log benchmark-artifact/benchmark.log
+      - name: Upload benchmark
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-large
+          path: benchmark-artifact/
+          if-no-files-found: error
+          retention-days: 30
+
+  summary:
+    name: Summary
+    needs:
+      - linux
+      - macos
+      - fuzz-smoke
+      - fuzz-nightly
+      - benchmark-cjson
+      - benchmark-fanout
+      - benchmark-sdl3
+      - benchmark-large
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download benchmark reports
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        uses: actions/download-artifact@v4
+        with:
+          pattern: benchmark-*
+          path: benchmark-results
+
+      - name: Publish SVGs to rolling asset store
+        id: media
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ci-benchmark-assets
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --prerelease \
+              --title "CI benchmark assets" \
+              --notes "Rolling storage for SVGs embedded in GitHub Actions benchmark summaries."
+
+          stamp="$(date -u +%Y-%m-%d)-${GITHUB_RUN_ID}"
+          while IFS= read -r -d '' svg; do
+            base="$(basename "$svg")"
+            asset="${stamp}-${base}"
+            cp "$svg" "/tmp/$asset"
+            gh release upload "$TAG" "/tmp/$asset" -R "$GITHUB_REPOSITORY" --clobber
+          done < <(find benchmark-results -type f -name '*.svg' -print0)
+
+          echo "asset_base=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG" >> "$GITHUB_OUTPUT"
+          echo "stamp=$stamp" >> "$GITHUB_OUTPUT"
+
+      - name: Write final Actions summary
+        env:
+          LINUX_RESULT: ${{ needs.linux.result }}
+          MACOS_RESULT: ${{ needs.macos.result }}
+          FUZZ_RESULT: ${{ needs.fuzz-smoke.result }}
+          NIGHTLY_RESULT: ${{ needs.fuzz-nightly.result }}
+          CJSON_RESULT: ${{ needs.benchmark-cjson.result }}
+          FANOUT_RESULT: ${{ needs.benchmark-fanout.result }}
+          SDL3_RESULT: ${{ needs.benchmark-sdl3.result }}
+          LARGE_RESULT: ${{ needs.benchmark-large.result }}
+          ASSET_BASE: ${{ steps.media.outputs.asset_base }}
+          STAMP: ${{ steps.media.outputs.stamp }}
+        run: |
+          set -euo pipefail
+          {
+            echo '# C-BuildSystem CI'
+            echo
+            echo '## Pipeline'
+            echo
+            echo "- Linux: **$LINUX_RESULT**"
+            echo "- macOS: **$MACOS_RESULT**"
+            echo "- Fuzz smoke: **$FUZZ_RESULT**"
+            if [ "$NIGHTLY_RESULT" != "skipped" ]; then
+              echo "- Nightly fuzz: **$NIGHTLY_RESULT**"
+            fi
+            if [ "$CJSON_RESULT" != "skipped" ]; then
+              echo "- cJSON benchmark: **$CJSON_RESULT**"
+              echo "- libcurl fan-out benchmark: **$FANOUT_RESULT**"
+              echo "- SDL3 benchmark: **$SDL3_RESULT**"
+              echo "- Wireshark benchmark: **$LARGE_RESULT**"
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "${ASSET_BASE:-}" ] && [ -d benchmark-results ]; then
+            for benchmark in cjson fanout sdl3 large; do
+              report="benchmark-results/benchmark-${benchmark}/summary.md"
+              if [ -s "$report" ]; then
+                sed \
+                  -e "s|__ASSET_BASE__|$ASSET_BASE|g" \
+                  -e "s|__RUN_PREFIX__|$STAMP-|g" \
+                  "$report" >> "$GITHUB_STEP_SUMMARY"
+                echo >> "$GITHUB_STEP_SUMMARY"
+              fi
+            done
+            {
+              echo '---'
+              echo
+              echo 'Raw JSON, logs and SVGs are attached to this workflow run as artifacts.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Prune benchmark SVGs older than 30 days
+        if: steps.media.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ci-benchmark-assets
+        run: |
+          set -euo pipefail
+          cutoff="$(date -u -d '30 days ago' +%Y-%m-%d)"
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | \
+          while read -r name; do
+            date_prefix="${name:0:10}"
+            case "$date_prefix" in
+              [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+              *) continue ;;
+            esac
+            if [[ "$date_prefix" < "$cutoff" ]]; then
+              gh release delete-asset "$TAG" "$name" -R "$GITHUB_REPOSITORY" --yes || true
+            fi
+          done

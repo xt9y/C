@@ -85,8 +85,6 @@ def render(result, input_path, out_dir):
 
 ## Anchor update resources
 
-![SDL3 anchor-update resources](benchmarks/sdl3/resources.svg)
-
 | Metric | `c` | CMake + Ninja |
 | --- | ---: | ---: |
 | CPU time | {cpu_c:.2f} s | {cpu_n:.2f} s |

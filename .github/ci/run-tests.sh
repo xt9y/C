@@ -5,15 +5,21 @@ ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
 C_BIN="${1:-$ROOT/build/c}"
 INC="${2:-$ROOT/include}"
 RUNTIME_TESTS="$ROOT/tests"
+RUNTIME_BENCHMARKS="$ROOT/benchmarks"
 
 if [ -e "$RUNTIME_TESTS" ] || [ -L "$RUNTIME_TESTS" ]; then
     echo "c: refusing to replace existing $RUNTIME_TESTS" >&2
     exit 1
 fi
+if [ -e "$RUNTIME_BENCHMARKS" ] || [ -L "$RUNTIME_BENCHMARKS" ]; then
+    echo "c: refusing to replace existing $RUNTIME_BENCHMARKS" >&2
+    exit 1
+fi
 
 cp -R "$ROOT/.github/ci/tests" "$RUNTIME_TESTS"
+cp -R "$ROOT/.github/ci/benchmarks" "$RUNTIME_BENCHMARKS"
 cleanup() {
-    rm -rf "$RUNTIME_TESTS"
+    rm -rf "$RUNTIME_TESTS" "$RUNTIME_BENCHMARKS"
 }
 trap cleanup EXIT INT TERM HUP
 

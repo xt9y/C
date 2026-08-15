@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/xt9y/C-BuildSystem/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xt9y/C-BuildSystem/actions/workflows/ci.yml?query=branch%3Amain)
 
-[**Latest CI + benchmark summary →**](https://github.com/xt9y/C-BuildSystem/actions/workflows/ci.yml?query=branch%3Amain)
-
 Build C with C.
 
 ```c

@@ -112,7 +112,6 @@ def augment(result, input_path, out_dir):
     )
     section = (
         "## Scaling curve\n\n"
-        "![SDL3 incremental scaling](benchmarks/sdl3/timings.svg)\n\n"
         "The x-axis is the **number of SDL source files changed**. The controlled points edit exactly "
         "7, 21, 42, 63, 105, 147, and 189 endpoint translation units with harmless comments, using a deterministic mixed ordering across SDL subsystems. Larger points are cumulative supersets of smaller points.\n\n"
         "This controlled curve is intentionally separate from the real 7-commit SDL update reported below: the real update shows real-world behavior, while this curve isolates how each build system scales as the amount of invalidated source code grows.\n\n"

@@ -136,7 +136,8 @@ static void fuzz_cli_source_kinds(const uint8_t *data, size_t size, size_t *pos)
     if (cpp != expected) abort();
 
     if (!compiler_c_standard_flag("-std=c11")) abort();
-    if (!compiler_c_standard_flag("-std=gnu11" ) && compiler_cpp_standard_flag("-std=gnu11")) abort();
+    if (compiler_c_standard_flag("-std=gnu11")) abort();
+    if (compiler_cpp_standard_flag("-std=gnu11")) abort();
     if (compiler_c_standard_flag("-std=c++20")) abort();
     if (!compiler_cpp_standard_flag("-std=c++20")) abort();
     if (!compiler_cpp_standard_flag("-std=gnu++17")) abort();

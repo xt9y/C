@@ -7,9 +7,9 @@ CC=${CC:-clang}
 TARGET=${1:-all}
 
 case "$TARGET" in
-    all) TARGETS="lockfile depfile cache fs project" ;;
-    lockfile|depfile|cache|fs|project) TARGETS="$TARGET" ;;
-    *) echo "usage: $0 [all|lockfile|depfile|cache|fs|project]" >&2; exit 2 ;;
+    all) TARGETS="lockfile depfile cache cli fs project" ;;
+    lockfile|depfile|cache|cli|fs|project) TARGETS="$TARGET" ;;
+    *) echo "usage: $0 [all|lockfile|depfile|cache|cli|fs|project]" >&2; exit 2 ;;
 esac
 
 if ! command -v "$CC" >/dev/null 2>&1; then
@@ -19,6 +19,10 @@ fi
 
 mkdir -p "$OUT"
 
+# Keep a generated copy so fuzz harnesses can reach the production file's
+# static helpers. #line preserves the original source path for diagnostics and
+# LLVM coverage; coverage-report.sh also supplies an explicit path-equivalence
+# fallback for LLVM versions that retain the generated path.
 awk -v source="$ROOT/src/cli.c" '
     BEGIN { print "#line 1 \"" source "\"" }
     $0 == "int main(int argc, char **argv) {" {

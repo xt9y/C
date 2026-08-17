@@ -10,17 +10,19 @@ from pathlib import Path
 CORE_FILES = ("cache_io.h", "main.c", "perf_v2.h")
 REQUIRED_FILES = (*CORE_FILES, "cli.c")
 
-# These are intentionally below the measured baseline. They are regression
-# floors, not claims that the current coverage is a finished target.
+# Regression floors sit below the measured CI result, leaving normal fuzz-run
+# variance while preventing meaningful coverage loss from silently landing.
 GATES = (
     ("Core line coverage", "core", "lines", 54.0),
     ("Core branch coverage", "core", "branches", 36.0),
+    ("All-production line coverage", "all", "lines", 60.0),
+    ("All-production branch coverage", "all", "branches", 39.0),
     ("main.c line coverage", "main.c", "lines", 50.0),
     ("main.c branch coverage", "main.c", "branches", 33.0),
     ("main.c function coverage", "main.c", "functions", 60.0),
-    ("cli.c line coverage", "cli.c", "lines", 10.0),
-    ("cli.c branch coverage", "cli.c", "branches", 8.0),
-    ("cli.c function coverage", "cli.c", "functions", 10.0),
+    ("cli.c line coverage", "cli.c", "lines", 68.0),
+    ("cli.c branch coverage", "cli.c", "branches", 40.0),
+    ("cli.c function coverage", "cli.c", "functions", 58.0),
 )
 
 METRICS = ("lines", "functions", "branches", "regions")
@@ -101,6 +103,9 @@ def main() -> int:
         if subject == "core":
             actual = core[key]["percent"]
             available = all(name in files for name in CORE_FILES)
+        elif subject == "all":
+            actual = all_production[key]["percent"]
+            available = all(name in files for name in REQUIRED_FILES)
         else:
             available = subject in files
             actual = files[subject][key]["percent"] if available else 0.0

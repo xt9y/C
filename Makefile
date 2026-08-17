@@ -23,9 +23,9 @@ $(NATIVE): src/cli.c src/main.c src/cache_io.h src/perf_v2.h include/cbuild.h
 	mkdir -p $(BUILD)
 	$(CC) $(CPPFLAGS) $(PORTABILITY_CPPFLAGS) $(CFLAGS) -include src/cache_io.h -Iinclude -DCBUILD_HEADER_PATH='"$(abspath include/cbuild.h)"' src/cli.c $(LDLIBS) -o $(NATIVE)
 
-$(TARGET): src/wrapper.c $(NATIVE)
+$(TARGET): src/wrapper.c src/wrapper_compat.h $(NATIVE)
 	mkdir -p $(BUILD)
-	$(CC) $(CPPFLAGS) $(PORTABILITY_CPPFLAGS) $(CFLAGS) src/wrapper.c -o $(TARGET)
+	$(CC) $(CPPFLAGS) $(PORTABILITY_CPPFLAGS) $(CFLAGS) -include src/wrapper_compat.h src/wrapper.c -o $(TARGET)
 
 install: $(TARGET)
 	install -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(INCLUDEDIR) $(DESTDIR)$(LIBEXECDIR)

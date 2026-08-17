@@ -21,6 +21,35 @@ void build(C_Build *b) {
 - Lockfiles.
 - `compile_commands.json`.
 - macOS + Linux.
+- Existing CMake and Make projects can use `c build` without a `build.c`.
+
+## Existing projects
+
+If there is no `build.c`, `c build` falls back in this order:
+
+- `CMakeLists.txt`
+- `GNUmakefile`
+- `Makefile`
+- `makefile`
+
+```bash
+c build
+c build my_target
+c build my_target -j8
+c build --release          # CMake
+c build -- MODE=release    # backend-specific Make arguments
+C_CMAKE_BUILD_DIR=build c build  # reuse an existing configured CMake tree
+```
+
+`c convert` creates a `build.c` compatibility bridge while keeping the original CMake/Make configuration authoritative:
+
+```bash
+c convert
+c convert CMakeLists.txt
+c convert Makefile
+```
+
+That bridge is the lossless conversion mode: it preserves backend behavior instead of pretending arbitrary CMake/Make logic can always be translated into native C-BuildSystem targets.
 
 ## Why
 

@@ -24,6 +24,7 @@ cleanup() {
 trap cleanup EXIT INT TERM HUP
 
 sh "$RUNTIME_TESTS/smoke.sh" "$C_BIN" "$INC"
+sh "$RUNTIME_TESTS/wrapper_backends.sh" "$C_BIN" "$INC"
 sh "$RUNTIME_TESTS/dependency.sh" "$C_BIN" "$INC"
 sh "$RUNTIME_TESTS/compiler_only.sh" "$C_BIN" "$INC"
 sh "$RUNTIME_TESTS/source_dependency.sh" "$C_BIN" "$INC"

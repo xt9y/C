@@ -21,7 +21,6 @@ env:
 jobs:
   linux:
     name: Linux
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -34,7 +33,6 @@ jobs:
   macos:
     name: macOS
     needs: linux
-    if: github.event_name != 'schedule'
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
@@ -47,7 +45,6 @@ jobs:
   fuzz-smoke:
     name: Fuzz smoke
     needs: macos
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -142,7 +139,7 @@ jobs:
   benchmark-cjson:
     name: cJSON benchmark
     needs: fuzz-smoke
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -174,7 +171,7 @@ jobs:
   benchmark-fanout:
     name: libcurl fan-out benchmark
     needs: benchmark-cjson
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -206,7 +203,7 @@ jobs:
   benchmark-sdl3:
     name: SDL3 benchmark
     needs: benchmark-fanout
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -257,7 +254,7 @@ jobs:
   benchmark-large:
     name: Wireshark benchmark
     needs: benchmark-sdl3
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -305,7 +302,6 @@ jobs:
       contents: write
     steps:
       - name: Download fuzz coverage
-        if: github.event_name != 'schedule'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -313,7 +309,7 @@ jobs:
           path: fuzz-results
 
       - name: Download benchmark reports
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         uses: actions/download-artifact@v4
         with:
           pattern: benchmark-*
@@ -321,7 +317,7 @@ jobs:
 
       - name: Publish SVGs to rolling asset store
         id: media
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ci-benchmark-assets

@@ -15,6 +15,7 @@ THIS_TRAILING_DATA_MUST_NOT_SURVIVE_INSTALL
 EOF
 make -C "$ROOT" PREFIX=/usr/local DESTDIR="$TMP" install >/dev/null
 cmp "$ROOT/include/cbuild.h" "$TMP/usr/local/include/cbuild.h"
+test -x "$TMP/usr/local/libexec/c-buildsystem/c-native"
 mkdir "$TMP/project"
 cd "$TMP/project"
 "$TMP/usr/local/bin/c" init >/dev/null

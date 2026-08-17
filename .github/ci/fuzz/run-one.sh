@@ -17,6 +17,7 @@ case "$TARGET" in
     lockfile) DICT="$ROOT/fuzz/dictionaries/lockfile.dict" ;;
     depfile) DICT="$ROOT/fuzz/dictionaries/depfile.dict" ;;
     cache) ;;
+    cli) DICT="$ROOT/fuzz/dictionaries/cli.dict"; MAX_LEN=512 ;;
     fs) TIMEOUT=10; MAX_LEN=512 ;;
     project) TIMEOUT=15; MAX_LEN=512 ;;
     *) echo "unknown fuzz target: $TARGET" >&2; exit 2 ;;
@@ -24,6 +25,11 @@ esac
 
 if [ ! -x "$BIN" ]; then
     echo "fuzz binary missing: $BIN (run fuzz/build.sh first)" >&2
+    exit 1
+fi
+
+if [ ! -d "$CORPUS" ]; then
+    echo "fuzz corpus missing: $CORPUS" >&2
     exit 1
 fi
 

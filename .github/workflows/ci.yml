@@ -74,10 +74,11 @@ jobs:
           ./fuzz/run-one.sh lockfile 20
           ./fuzz/run-one.sh depfile 20
           ./fuzz/run-one.sh cache 20
+          ./fuzz/run-one.sh cli 20
           ./fuzz/run-one.sh fs 20
-          ./fuzz/run-one.sh project 20
+          ./fuzz/run-one.sh project 30
 
-      - name: Coverage
+      - name: Coverage and regression gates
         env:
           FUZZ_PROFILE_DIR: ${{ github.workspace }}/fuzz/profiles
         run: ./fuzz/coverage-report.sh
@@ -85,15 +86,15 @@ jobs:
       - name: Publish fuzz summary
         if: success() || failure()
         run: |
-          {
-            echo '## Fuzz coverage'
-            echo
-            echo 'Production `src/` coverage reached by the sanitizer fuzz corpus:'
-            echo
-            echo '```text'
-            cat fuzz/coverage/coverage.txt 2>/dev/null || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s fuzz/coverage/coverage.md ]; then
+            cat fuzz/coverage/coverage.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo '## Fuzz coverage'
+              echo
+              echo 'Coverage report was not produced.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload fuzz evidence
         if: always()
@@ -112,7 +113,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [lockfile, depfile, cache, fs, project]
+        target: [lockfile, depfile, cache, cli, fs, project]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -303,6 +304,14 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Download fuzz coverage
+        if: github.event_name != 'schedule'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: fuzz-smoke-${{ github.run_id }}
+          path: fuzz-results
+
       - name: Download benchmark reports
         if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         uses: actions/download-artifact@v4
@@ -367,6 +376,11 @@ jobs:
             fi
             echo
           } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -s fuzz-results/coverage/coverage.md ]; then
+            cat fuzz-results/coverage/coverage.md >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+          fi
 
           if [ -n "${ASSET_BASE:-}" ] && [ -d benchmark-results ]; then
             for benchmark in cjson fanout sdl3 large; do

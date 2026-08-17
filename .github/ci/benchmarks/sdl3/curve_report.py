@@ -18,7 +18,7 @@ def verdict(c, n):
     pct = (n - c) / n * 100 if n else 0
     if abs(pct) < .05:
         return "tied"
-    return f"`c` {pct:.1f}% faster" if pct > 0 else f"CMake + Ninja {-pct:.1f}% faster"
+    return f"C-BuildSystem {pct:.1f}% faster" if pct > 0 else f"CMake + Ninja {-pct:.1f}% faster"
 
 
 def write_svg(path, points, total):
@@ -65,7 +65,7 @@ def write_svg(path, points, total):
 
     out += [
         f'<text x="{l+pw/2:.1f}" y="{h-19}" text-anchor="middle" font-family="sans-serif" font-size="12">Changed SDL source files</text>',
-        '<circle cx="690" cy="27" r="4" fill="#24292f"/><text x="700" y="31" font-family="sans-serif" font-size="12">c</text>',
+        '<circle cx="620" cy="27" r="4" fill="#24292f"/><text x="630" y="31" font-family="sans-serif" font-size="12">C-BuildSystem</text>',
         '<circle cx="755" cy="27" r="4" fill="#8c959f"/><text x="765" y="31" font-family="sans-serif" font-size="12">CMake + Ninja</text>',
         '</svg>',
     ]
@@ -115,7 +115,7 @@ def augment(result, input_path, out_dir):
         "The x-axis is the **number of SDL source files changed**. The controlled points edit exactly "
         "7, 21, 42, 63, 105, 147, and 189 endpoint translation units with harmless comments, using a deterministic mixed ordering across SDL subsystems. Larger points are cumulative supersets of smaller points.\n\n"
         "This controlled curve is intentionally separate from the real 7-commit SDL update reported below: the real update shows real-world behavior, while this curve isolates how each build system scales as the amount of invalidated source code grows.\n\n"
-        "| Changed source files | Rebuilt TUs | `c` | CMake + Ninja | Result |\n"
+        "| Changed source files | Rebuilt TUs | C-BuildSystem | CMake + Ninja | Result |\n"
         "| ---: | ---: | ---: | ---: | --- |\n" + rows + "\n\n"
         f"Each controlled incremental point is measured {curve['runs_per_point']} times. "
         "The benchmark fails rather than publish a point unless both tools rebuild exactly the requested number of translation units.\n\n"

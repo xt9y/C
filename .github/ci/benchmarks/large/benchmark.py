@@ -96,15 +96,15 @@ def main():
             paths=[p for _,p in editable[:count]]
             ns,nr=profile_changed(src,ncmd,paths,nb,marker=MARKER)
             cs,cr=profile_changed(src,ccmd,paths,cproj/'build',cwd=cproj,env=ce)
-            if nr != count or cr != count: raise RuntimeError(f'{count}-source point rebuilt unexpected TUs: c={cr} ninja={nr}')
+            if nr != count or cr != count: raise RuntimeError(f'{count}-source point rebuilt unexpected TUs: C-BuildSystem={cr} Ninja={nr}')
             points.append({'changed_sources':count,'source_paths':[r for r,_ in editable[:count]],'c':cs,'cmake_ninja':ns,'rebuilt_tus':count})
 
         result={'project':'Wireshark dissectors','revision':REV,'purpose':'large translation-unit stress','target':TARGET,'source_count':len(sources),'editable_source_count':len(editable),'jobs':jobs,'machine':common.machine_stats(),'semantic_flags':flags,
                 'c':{'clean':common.summarize(cclean),'noop':common.summarize(cnoop)},'cmake_ninja':{'clean':common.summarize(nclean),'noop':common.summarize(nnoop)},'points':points,
-                'method':'same CMake-derived source set and semantic flags; Ninja object target is followed by a timestamp-aware static archive step to match c static-library output'}
+                'method':'same CMake-derived source set and semantic flags; Ninja object target is followed by a timestamp-aware static archive step to match C-BuildSystem static-library output'}
         out=common.ROOT/'benchmarks'/'large'; out.mkdir(parents=True,exist_ok=True); (out/'results.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
         def fmt(x): return f'{x/1000:.2f} s' if x>=1000 else f'{x:.1f} ms'
         rows='\n'.join(f"| {p['changed_sources']} source{'s' if p['changed_sources']!=1 else ''} changed | {fmt(p['c']['wall_ms'])} | {fmt(p['cmake_ninja']['wall_ms'])} |" for p in points)
-        md=f'''# Wireshark large-project stress benchmark\n\nPinned Wireshark `{REV}` dissector workload: **{len(sources)} translation units**, {jobs} build jobs. Lower is better.\n\n| Test | `c` | CMake + Ninja |\n| --- | ---: | ---: |\n| Clean compile + archive | {fmt(result['c']['clean']['wall_ms'])} | {fmt(result['cmake_ninja']['clean']['wall_ms'])} |\n| No changes | {fmt(result['c']['noop']['wall_ms'])} | {fmt(result['cmake_ninja']['noop']['wall_ms'])} |\n{rows}\n\nThe Ninja path includes a timestamp-aware archive of the same object target so both sides perform compile + static-archive work. Object caching is disabled. Controlled source points fail unless both systems rebuild exactly the requested TU count.\n'''
+        md=f'''# Wireshark large-project stress benchmark\n\nPinned Wireshark `{REV}` dissector workload: **{len(sources)} translation units**, {jobs} build jobs. Lower is better.\n\n| Test | C-BuildSystem | CMake + Ninja |\n| --- | ---: | ---: |\n| Clean compile + archive | {fmt(result['c']['clean']['wall_ms'])} | {fmt(result['cmake_ninja']['clean']['wall_ms'])} |\n| No changes | {fmt(result['c']['noop']['wall_ms'])} | {fmt(result['cmake_ninja']['noop']['wall_ms'])} |\n{rows}\n\nThe Ninja path includes a timestamp-aware archive of the same object target so both sides perform compile + static-archive work. Object caching is disabled. Controlled source points fail unless both systems rebuild exactly the requested TU count.\n'''
         (out/'README.md').write_text(md); print('LARGE_JSON='+json.dumps(result,sort_keys=True)); print(md)
 if __name__=='__main__': main()

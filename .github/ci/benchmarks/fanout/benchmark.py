@@ -72,8 +72,8 @@ def main():
             cf.append(common.profiled(cc,cwd=cproj,env=ce)); after=common.object_snapshot(cproj/'build'); ccounts.append(len(common.changed_objects(before,after)))
         common.git_restore(src,header); common.run(cc,cwd=cproj,env=ce,quiet=True)
 
-        if len(set(ncounts)) != 1 or len(set(ccounts)) != 1: raise RuntimeError(f'unstable fanout counts c={ccounts} ninja={ncounts}')
-        if ccounts[0] != ncounts[0]: raise RuntimeError(f'different invalidation sets by count: c={ccounts[0]} ninja={ncounts[0]}')
+        if len(set(ncounts)) != 1 or len(set(ccounts)) != 1: raise RuntimeError(f'unstable fanout counts C-BuildSystem={ccounts} Ninja={ncounts}')
+        if ccounts[0] != ncounts[0]: raise RuntimeError(f'different invalidation sets by count: C-BuildSystem={ccounts[0]} Ninja={ncounts[0]}')
         if ccounts[0] < source_count//2: raise RuntimeError(f'{HEADER_REL} only invalidated {ccounts[0]}/{source_count} TUs')
 
         launcher=work/'compiler-launcher.sh'; write_launcher(launcher,False)
@@ -95,6 +95,6 @@ def main():
                 'runs':{'clean':CLEAN_RUNS,'noop':NOOP_RUNS,'fanout':FANOUT_RUNS}}
         out=common.ROOT/'benchmarks'/'fanout'; out.mkdir(parents=True,exist_ok=True); (out/'results.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
         def fmt(x): return f'{x/1000:.2f} s' if x>=1000 else f'{x:.1f} ms'
-        md=f'''# libcurl header fan-out benchmark\n\nPinned libcurl {REV}. A harmless content change is made to `{HEADER_REL}`. Both systems must invalidate the same number of translation units.\n\n- Target translation units: **{source_count}**\n- Translation units invalidated: **{ccounts[0]}**\n\n| Test | `c` | CMake + Ninja |\n| --- | ---: | ---: |\n| No changes | {fmt(result['c']['noop']['wall_ms'])} | {fmt(result['cmake_ninja']['noop']['wall_ms'])} |\n| Header fan-out rebuild | {fmt(result['c']['header_change']['wall_ms'])} | {fmt(result['cmake_ninja']['header_change']['wall_ms'])} |\n| Invocation to first compiler | {fmt(clat_ms)} | {fmt(nlat_ms)} |\n| Clean build | {fmt(result['c']['clean']['wall_ms'])} | {fmt(result['cmake_ninja']['clean']['wall_ms'])} |\n\nObject caching is disabled. Fan-out wall time is the median of {FANOUT_RUNS} runs; no-op is the median of {NOOP_RUNS}.\n'''
+        md=f'''# libcurl header fan-out benchmark\n\nPinned libcurl {REV}. A harmless content change is made to `{HEADER_REL}`. Both systems must invalidate the same number of translation units.\n\n- Target translation units: **{source_count}**\n- Translation units invalidated: **{ccounts[0]}**\n\n| Test | C-BuildSystem | CMake + Ninja |\n| --- | ---: | ---: |\n| No changes | {fmt(result['c']['noop']['wall_ms'])} | {fmt(result['cmake_ninja']['noop']['wall_ms'])} |\n| Header fan-out rebuild | {fmt(result['c']['header_change']['wall_ms'])} | {fmt(result['cmake_ninja']['header_change']['wall_ms'])} |\n| Invocation to first compiler | {fmt(clat_ms)} | {fmt(nlat_ms)} |\n| Clean build | {fmt(result['c']['clean']['wall_ms'])} | {fmt(result['cmake_ninja']['clean']['wall_ms'])} |\n\nObject caching is disabled. Fan-out wall time is the median of {FANOUT_RUNS} runs; no-op is the median of {NOOP_RUNS}.\n'''
         (out/'README.md').write_text(md); print('FANOUT_JSON='+json.dumps(result,sort_keys=True)); print(md)
 if __name__=='__main__': main()

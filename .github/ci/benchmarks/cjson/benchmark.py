@@ -72,7 +72,7 @@ def main():
             fresh=work/f'fresh-cache-{i}'; shutil.rmtree(fresh,ignore_errors=True)
             csetup.append(common.profiled(ccmd,cwd=cproj,env=common.c_env(fresh)))
 
-        if nrebuilt != 1 or crebuilt != 1: raise RuntimeError(f'unexpected rebuild count c={crebuilt} ninja={nrebuilt}')
+        if nrebuilt != 1 or crebuilt != 1: raise RuntimeError(f'unexpected rebuild count C-BuildSystem={crebuilt} Ninja={nrebuilt}')
         result={'project':'cJSON','revision':REV,'purpose':'startup/overhead','jobs':jobs,'source_count':1,
                 'machine':common.machine_stats(),'semantic_flags':flags,
                 'configuration':{'c_fresh_build_script_cache':common.summarize(csetup),'cmake_configure':common.summarize(cmake_config)},
@@ -82,7 +82,7 @@ def main():
         out=common.ROOT/'benchmarks'/'cjson'; out.mkdir(parents=True,exist_ok=True)
         (out/'results.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
         def fmt(ms): return f'{ms/1000:.2f} s' if ms>=1000 else f'{ms:.1f} ms'
-        md=f'''# cJSON overhead benchmark\n\nPinned cJSON {REV}, one C translation unit. Lower is better.\n\n| Test | `c` | CMake + Ninja |\n| --- | ---: | ---: |\n| Fresh build-system setup | {fmt(result['configuration']['c_fresh_build_script_cache']['wall_ms'])} | {fmt(result['configuration']['cmake_configure']['wall_ms'])} |\n| Clean build | {fmt(result['c']['clean']['wall_ms'])} | {fmt(result['cmake_ninja']['clean']['wall_ms'])} |\n| No changes | {fmt(result['c']['noop']['wall_ms'])} | {fmt(result['cmake_ninja']['noop']['wall_ms'])} |\n| One source changed | {fmt(result['c']['one_source_changed']['wall_ms'])} | {fmt(result['cmake_ninja']['one_source_changed']['wall_ms'])} |\n\nNo-op is the median of {NOOP_RUNS} runs. Object caching is disabled. Both systems rebuild exactly one TU after the source edit.\n'''
+        md=f'''# cJSON overhead benchmark\n\nPinned cJSON {REV}, one C translation unit. Lower is better.\n\n| Test | C-BuildSystem | CMake + Ninja |\n| --- | ---: | ---: |\n| Fresh build-system setup | {fmt(result['configuration']['c_fresh_build_script_cache']['wall_ms'])} | {fmt(result['configuration']['cmake_configure']['wall_ms'])} |\n| Clean build | {fmt(result['c']['clean']['wall_ms'])} | {fmt(result['cmake_ninja']['clean']['wall_ms'])} |\n| No changes | {fmt(result['c']['noop']['wall_ms'])} | {fmt(result['cmake_ninja']['noop']['wall_ms'])} |\n| One source changed | {fmt(result['c']['one_source_changed']['wall_ms'])} | {fmt(result['cmake_ninja']['one_source_changed']['wall_ms'])} |\n\nNo-op is the median of {NOOP_RUNS} runs. Object caching is disabled. Both systems rebuild exactly one TU after the source edit.\n'''
         (out/'README.md').write_text(md)
         print('CJSON_JSON='+json.dumps(result,sort_keys=True))
         print(md)

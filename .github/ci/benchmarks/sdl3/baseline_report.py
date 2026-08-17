@@ -71,11 +71,11 @@ def render(result, input_path, out_dir):
     run = os.environ.get("GITHUB_RUN_NUMBER", "local")
     summary = f"""# SDL3 benchmark
 
-`c` vs CMake + Ninja on a real SDL3 static debug build. Lower is better.
+C-BuildSystem vs CMake + Ninja on a real SDL3 static debug build. Lower is better.
 
 ## Core measurements
 
-| Build | `c` | CMake + Ninja |
+| Build | C-BuildSystem | CMake + Ninja |
 | --- | ---: | ---: |
 | Clean build | {fmt(c['clean']['wall_ms'])} | {fmt(n['clean']['wall_ms'])} |
 | No changes | {fmt(c['noop']['wall_ms'])} | {fmt(n['noop']['wall_ms'])} |
@@ -85,7 +85,7 @@ def render(result, input_path, out_dir):
 
 ## Anchor update resources
 
-| Metric | `c` | CMake + Ninja |
+| Metric | C-BuildSystem | CMake + Ninja |
 | --- | ---: | ---: |
 | CPU time | {cpu_c:.2f} s | {cpu_n:.2f} s |
 | Peak RSS | {mib(c['real_update']['max_rss_kb'])} | {mib(n['real_update']['max_rss_kb'])} |
@@ -94,7 +94,7 @@ def render(result, input_path, out_dir):
 
 ## Setup cost
 
-| Metric | Fresh `c` build-script cache | CMake configure |
+| Metric | Fresh C-BuildSystem build-script cache | CMake configure |
 | --- | ---: | ---: |
 | Wall time | {fmt(result['configuration']['c_fresh_build_script_cache']['wall_ms'])} | {fmt(result['configuration']['cmake_configure']['wall_ms'])} |
 | Peak RSS | {mib(result['configuration']['c_fresh_build_script_cache']['max_rss_kb'])} | {mib(result['configuration']['cmake_configure']['max_rss_kb'])} |

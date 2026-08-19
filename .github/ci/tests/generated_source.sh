@@ -29,6 +29,8 @@ SRC
     C_INCLUDE_DIR="$INC" "$C_BIN" build >/dev/null
     test "$(./build/debug/app)" = 7
 
+    # Input contents must invalidate even when updates happen inside the same
+    # coarse filesystem timestamp window.
     printf '11\n' > value.txt
     C_INCLUDE_DIR="$INC" "$C_BIN" build >/dev/null
     test "$(./build/debug/app)" = 11

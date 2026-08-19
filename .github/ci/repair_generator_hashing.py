@@ -1,3 +1,4 @@
+# One-shot repair for generated-source content invalidation.
 from pathlib import Path
 
 p = Path('src/cli.c')

@@ -17,18 +17,29 @@ jobs:
         with:
           ref: ci-repair
       - name: Apply repair
+        id: patch
+        continue-on-error: true
         run: python3 .github/ci/repair_generator_hashing.py
       - name: Build and focused regression
+        id: test
+        if: steps.patch.outcome == 'success'
+        continue-on-error: true
         run: |
           make clean
           make
           sh .github/ci/tests/generated_source.sh "$(pwd)/build/c" "$(pwd)/include"
+      - name: Record repair outcome
+        if: always()
+        run: |
+          printf 'patch=%s\ntest=%s\n' '${{ steps.patch.outcome }}' '${{ steps.test.outcome }}' > .repair-generator-result
       - name: Remove repair scaffolding
-        run: rm .github/ci/repair_generator_hashing.py .github/workflows/ci-repair-generator.yml
+        if: always()
+        run: rm -f .github/ci/repair_generator_hashing.py .github/workflows/ci-repair-generator.yml
       - name: Commit repair branch
+        if: always()
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A src/cli.c .github/ci/repair_generator_hashing.py .github/workflows/ci-repair-generator.yml
-          git commit -m "Use content hashes for generated sources"
+          git add -A src/cli.c .repair-generator-result .github/ci/repair_generator_hashing.py .github/workflows/ci-repair-generator.yml
+          git commit -m "Apply generated source CI repair"
           git push origin HEAD:ci-repair

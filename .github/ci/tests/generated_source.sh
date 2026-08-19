@@ -46,7 +46,7 @@ PY
     # No input change and no command change should keep generated output stable.
     before=$(stat -c %Y generated/value.c 2>/dev/null || stat -f %m generated/value.c)
     sleep 1
-    C_INCLUDE_DIR="$INC" "$C_BIN" build --explain >explain.log
+    C_INCLUDE_DIR="$INC" "$C_BIN" build --explain >explain.log 2>&1
     after=$(stat -c %Y generated/value.c 2>/dev/null || stat -f %m generated/value.c)
     test "$before" = "$after"
     grep -q 'generator is fresh' explain.log

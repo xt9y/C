@@ -28,7 +28,8 @@ extern "C" {
 typedef enum C_TargetKind {
     C_TARGET_EXECUTABLE = 0,
     C_TARGET_STATIC_LIBRARY = 1,
-    C_TARGET_TEST = 2
+    C_TARGET_TEST = 2,
+    C_TARGET_SHARED_LIBRARY = 3
 } C_TargetKind;
 
 typedef enum C_DepKind {
@@ -36,6 +37,13 @@ typedef enum C_DepKind {
     C_DEP_RESERVED = 1,
     C_DEP_SOURCE = 2
 } C_DepKind;
+
+typedef enum C_Standard {
+    C_STANDARD_C99 = 99,
+    C_STANDARD_C11 = 11,
+    C_STANDARD_C17 = 17,
+    C_STANDARD_C23 = 23
+} C_Standard;
 
 typedef struct C_StringList {
     char **items;
@@ -67,6 +75,8 @@ typedef struct C_Target {
     C_StringList frameworks;
     C_Dependency *deps[C_MAX_DEPS];
     size_t dep_count;
+    struct C_Target *target_deps[C_MAX_TARGETS];
+    size_t target_dep_count;
     int unity_chunk;  /* 0=inherit CLI, 1=off, -1=auto, >=2=fixed chunk */
 } C_Target;
 
@@ -149,36 +159,21 @@ static inline void c__check_dep_name(const C_Build *b, const char *name) {
     }
 }
 
-static inline C_Target *c_executable(C_Build *b, const char *name) {
+static inline C_Target *c__new_target(C_Build *b, const char *name, C_TargetKind kind) {
     c__check_target_name(b, name);
     if (b->target_count >= C_MAX_TARGETS) c__fatal("too many targets; increase C_MAX_TARGETS or split the build");
     C_Target *t = &b->targets[b->target_count++];
     memset(t, 0, sizeof(*t));
-    t->kind = C_TARGET_EXECUTABLE;
+    t->kind = kind;
     c__copy(t->name, sizeof(t->name), name);
-    if (b->default_target < 0) b->default_target = (int)(b->target_count - 1);
+    if (kind == C_TARGET_EXECUTABLE && b->default_target < 0) b->default_target = (int)(b->target_count - 1);
     return t;
 }
 
-static inline C_Target *c_static_library(C_Build *b, const char *name) {
-    c__check_target_name(b, name);
-    if (b->target_count >= C_MAX_TARGETS) c__fatal("too many targets; increase C_MAX_TARGETS or split the build");
-    C_Target *t = &b->targets[b->target_count++];
-    memset(t, 0, sizeof(*t));
-    t->kind = C_TARGET_STATIC_LIBRARY;
-    c__copy(t->name, sizeof(t->name), name);
-    return t;
-}
-
-static inline C_Target *c_test(C_Build *b, const char *name) {
-    c__check_target_name(b, name);
-    if (b->target_count >= C_MAX_TARGETS) c__fatal("too many targets; increase C_MAX_TARGETS or split the build");
-    C_Target *t = &b->targets[b->target_count++];
-    memset(t, 0, sizeof(*t));
-    t->kind = C_TARGET_TEST;
-    c__copy(t->name, sizeof(t->name), name);
-    return t;
-}
+static inline C_Target *c_executable(C_Build *b, const char *name) { return c__new_target(b, name, C_TARGET_EXECUTABLE); }
+static inline C_Target *c_static_library(C_Build *b, const char *name) { return c__new_target(b, name, C_TARGET_STATIC_LIBRARY); }
+static inline C_Target *c_shared_library(C_Build *b, const char *name) { return c__new_target(b, name, C_TARGET_SHARED_LIBRARY); }
+static inline C_Target *c_test(C_Build *b, const char *name) { return c__new_target(b, name, C_TARGET_TEST); }
 
 static inline void c_default_target(C_Build *b, C_Target *target) {
     if (!b || !target) c__fatal("c_default_target requires a build and target");
@@ -197,6 +192,38 @@ static inline void c_framework(C_Target *t, const char *name) { if (!t) c__fatal
 static inline void c_unity(C_Target *t, int chunk_size) { if (!t) c__fatal("c_unity received a null target"); t->unity_chunk = chunk_size > 1 ? chunk_size : 1; }
 static inline void c_unity_auto(C_Target *t) { if (!t) c__fatal("c_unity_auto received a null target"); t->unity_chunk = -1; }
 static inline void c_no_unity(C_Target *t) { if (!t) c__fatal("c_no_unity received a null target"); t->unity_chunk = 1; }
+
+static inline void c_standard(C_Target *t, C_Standard standard) {
+    if (!t) c__fatal("c_standard received a null target");
+    switch (standard) {
+        case C_STANDARD_C99: c__push(&t->cflags, "-std=c99"); break;
+        case C_STANDARD_C11: c__push(&t->cflags, "-std=c11"); break;
+        case C_STANDARD_C17: c__push(&t->cflags, "-std=c17"); break;
+        case C_STANDARD_C23: c__push(&t->cflags, "-std=c23"); break;
+        default: c__fatal("unsupported C language standard");
+    }
+}
+
+static inline void c_warnings_strict(C_Target *t) {
+    if (!t) c__fatal("c_warnings_strict received a null target");
+    c__push(&t->cflags, "-Wall");
+    c__push(&t->cflags, "-Wextra");
+    c__push(&t->cflags, "-Wpedantic");
+}
+
+static inline void c_link_target(C_Target *t, C_Target *dependency) {
+    if (!t || !dependency) c__fatal("c_link_target requires two targets");
+    if (t == dependency) c__fatal("target cannot link to itself");
+    for (size_t i = 0; i < t->target_dep_count; ++i) {
+        if (t->target_deps[i] == dependency) {
+            fprintf(stderr, "c: error: invalid build.c: target '%s' links target '%s' more than once\n", t->name, dependency->name);
+            fflush(stderr);
+            exit(2);
+        }
+    }
+    if (t->target_dep_count >= C_MAX_TARGETS) c__fatal("too many target-to-target dependencies");
+    t->target_deps[t->target_dep_count++] = dependency;
+}
 
 static inline C_Dependency *c_git(C_Build *b, const char *name, const char *git, const char *ref) {
     c__check_dep_name(b, name);

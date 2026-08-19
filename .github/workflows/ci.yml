@@ -42,28 +42,46 @@ jobs:
       - name: Test
         run: make test
 
-  fuzz-smoke:
-    name: Fuzz smoke
+  sanitizers:
+    name: ASan + UBSan
     needs: macos
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Install Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+      - name: Build with sanitizers
+        env:
+          CC: clang
+          CFLAGS: -std=c11 -O1 -g -Wall -Wextra -Wpedantic -fsanitize=address,undefined -fno-omit-frame-pointer
+        run: make clean all
+      - name: Test with sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1:check_initialization_order=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: make test
 
+  fuzz-smoke:
+    name: Fuzz smoke
+    needs: sanitizers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
       - name: Install Clang and LLVM coverage tools
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm
-
       - name: Prepare fuzz harness
         run: cp -R .github/ci/fuzz fuzz
-
       - name: Build fuzz targets with sanitizers and coverage
         env:
           CC: clang
           FUZZ_COVERAGE: 1
         run: ./fuzz/build.sh
-
       - name: Fuzz smoke
         env:
           FUZZ_PROFILE_DIR: ${{ github.workspace }}/fuzz/profiles
@@ -74,12 +92,10 @@ jobs:
           ./fuzz/run-one.sh cli 20
           ./fuzz/run-one.sh fs 20
           ./fuzz/run-one.sh project 30
-
       - name: Coverage and regression gates
         env:
           FUZZ_PROFILE_DIR: ${{ github.workspace }}/fuzz/profiles
         run: ./fuzz/coverage-report.sh
-
       - name: Publish fuzz summary
         if: success() || failure()
         run: |
@@ -92,7 +108,6 @@ jobs:
               echo 'Coverage report was not produced.'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
-
       - name: Upload fuzz evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -106,6 +121,7 @@ jobs:
 
   fuzz-nightly:
     name: Nightly fuzz (${{ matrix.target }})
+    needs: fuzz-smoke
     if: github.event_name == 'schedule'
     strategy:
       fail-fast: false
@@ -139,7 +155,7 @@ jobs:
   benchmark-cjson:
     name: cJSON benchmark
     needs: fuzz-smoke
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -171,7 +187,7 @@ jobs:
   benchmark-fanout:
     name: libcurl fan-out benchmark
     needs: benchmark-cjson
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -203,7 +219,7 @@ jobs:
   benchmark-sdl3:
     name: SDL3 benchmark
     needs: benchmark-fanout
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -254,7 +270,7 @@ jobs:
   benchmark-large:
     name: Wireshark benchmark
     needs: benchmark-sdl3
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -290,6 +306,7 @@ jobs:
     needs:
       - linux
       - macos
+      - sanitizers
       - fuzz-smoke
       - fuzz-nightly
       - benchmark-cjson
@@ -309,7 +326,7 @@ jobs:
           path: fuzz-results
 
       - name: Download benchmark reports
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@v4
         with:
           pattern: benchmark-*
@@ -317,7 +334,7 @@ jobs:
 
       - name: Publish SVGs to rolling asset store
         id: media
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ci-benchmark-assets
@@ -343,6 +360,7 @@ jobs:
         env:
           LINUX_RESULT: ${{ needs.linux.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
+          SANITIZER_RESULT: ${{ needs.sanitizers.result }}
           FUZZ_RESULT: ${{ needs.fuzz-smoke.result }}
           NIGHTLY_RESULT: ${{ needs.fuzz-nightly.result }}
           CJSON_RESULT: ${{ needs.benchmark-cjson.result }}
@@ -356,15 +374,19 @@ jobs:
           {
             echo '# C-BuildSystem CI'
             echo
-            echo '## Pipeline'
+            echo '## Correctness pipeline'
             echo
             echo "- Linux: **$LINUX_RESULT**"
             echo "- macOS: **$MACOS_RESULT**"
+            echo "- ASan + UBSan: **$SANITIZER_RESULT**"
             echo "- Fuzz smoke: **$FUZZ_RESULT**"
             if [ "$NIGHTLY_RESULT" != "skipped" ]; then
               echo "- Nightly fuzz: **$NIGHTLY_RESULT**"
             fi
             if [ "$CJSON_RESULT" != "skipped" ]; then
+              echo
+              echo '## Benchmarks'
+              echo
               echo "- cJSON benchmark: **$CJSON_RESULT**"
               echo "- libcurl fan-out benchmark: **$FANOUT_RESULT**"
               echo "- SDL3 benchmark: **$SDL3_RESULT**"

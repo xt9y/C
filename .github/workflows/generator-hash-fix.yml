@@ -1,0 +1,32 @@
+name: Generator hash fix (one shot)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply fix
+        run: python3 .github/ci/generator_hash_fix.py
+      - name: Build and validate generator regression
+        run: |
+          make clean
+          make
+          sh .github/ci/tests/generated_source.sh "$(pwd)/build/c" "$(pwd)/include"
+      - name: Remove migration and validation result
+        run: rm -f .github/ci/generator_hash_fix.py .github/workflows/generator-hash-fix.yml .feature-validation-result
+      - name: Commit fix to main
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A src/cli.c .github/ci/generator_hash_fix.py .github/workflows/generator-hash-fix.yml .feature-validation-result
+          git commit -m "Use content hashes for generated inputs"
+          git push origin HEAD:main

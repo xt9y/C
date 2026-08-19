@@ -12,7 +12,7 @@ C-BuildSystem is moving from prototype work toward a stable, correctness-first r
 - [x] Add deterministic incremental-rebuild regression coverage.
 - [x] Add ASan + UBSan CI and fuzz smoke coverage.
 - [x] Move expensive benchmarks off normal pushes and PRs.
-- [ ] Continue expanding interruption, filesystem-failure and malformed-lockfile tests. Interruption recovery and malformed pinned commits are now covered; filesystem-failure coverage is still incomplete.
+- [x] Cover interrupted compilation, invalid cache-filesystem state and malformed/unusable lockfile state with deterministic recovery regressions.
 
 ## 0.9 — Complete build graph
 

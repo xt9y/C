@@ -1,0 +1,30 @@
+target_graph_rc=1
+generated_source_rc=1
+--- target graph ---
+build [debug]
+  ├─ configure  build.c
+  ├─ compile    src/base.c
+  ├─ archive    build/debug/base.a
+  ├─ compile    src/mid.c
+  ├─ archive    build/debug/mid.a
+  ├─ compile    src/shared.c
+  ├─ link       build/debug/libshared.so
+  ├─ compile    src/main.c
+  ├─ link       build/debug/app
+  └─ success 1195 ms
+build [debug]
+  ├─ cached     base
+  ├─ cached     mid
+  ├─ cached     shared
+  ├─ cached     app
+  └─ success 4 ms
+--- generated source ---
+build [debug]
+  ├─ configure  build.c
+  ├─ compile    main.c
+  ├─ compile    generated/value.c
+  ├─ link       build/debug/app
+  └─ success 72 ms
+build [debug]
+  ├─ cached     app
+  └─ success 2 ms

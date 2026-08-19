@@ -69,8 +69,11 @@ c build --explain
 c build --release
 c build -j8
 c cache
+c cache stats
 c cache clean
 c deps
+c deps tree
+c deps clean
 c update [dependency]
 c watch
 c --version
@@ -145,7 +148,7 @@ c run
 
 Docs (Thanks to AI): https://xt9y.de/c.html
 
-See `ROADMAP.md` for the stabilization milestones and `CHANGELOG.md` for user-visible changes.
+See `ROADMAP.md` for stabilization milestones, `CHANGELOG.md` for user-visible changes, `COMPATIBILITY.md` for the supported platform/compiler contract, and `RELEASING.md` for the release procedure.
 
 ## Notes
 

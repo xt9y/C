@@ -53,8 +53,9 @@ chmod +x "$TMP/bin/cc-wrapper"
     fi
     test -f "$TMP/interrupted"
 
-    # A failed compiler may have left a partial object behind. A subsequent
-    # normal build must reject it and rebuild to a working executable.
+    # The interruption can happen while compiling the cached build.c module,
+    # not only while compiling a target object. The next invocation must
+    # recover from either partial artifact and produce a working executable.
     export C_INTERRUPT_ONCE=0
     "$C_BIN" build >/dev/null
     test "$(./build/debug/app)" = ok

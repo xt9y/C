@@ -1,3 +1,4 @@
+# One-shot repair for explain/generator output visibility.
 from pathlib import Path
 
 p = Path('src/cli.c')

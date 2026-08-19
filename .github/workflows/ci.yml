@@ -71,8 +71,18 @@ jobs:
       - uses: actions/checkout@v5
       - name: Verify fuzz toolchain
         run: |
+          set -eu
           clang --version
-          llvm-cov --version
+          cov="$(command -v llvm-cov || command -v llvm-cov-21 || command -v llvm-cov-20 || command -v llvm-cov-19 || command -v llvm-cov-18 || command -v llvm-cov-17 || true)"
+          prof="$(command -v llvm-profdata || command -v llvm-profdata-21 || command -v llvm-profdata-20 || command -v llvm-profdata-19 || command -v llvm-profdata-18 || command -v llvm-profdata-17 || true)"
+          if [ -z "$cov" ] || [ -z "$prof" ]; then
+            sudo apt-get -o Acquire::Retries=3 update
+            sudo apt-get -o Acquire::Retries=3 install -y llvm
+            cov="$(command -v llvm-cov)"
+            prof="$(command -v llvm-profdata)"
+          fi
+          "$cov" --version
+          "$prof" --version
       - name: Prepare fuzz harness
         run: cp -R .github/ci/fuzz fuzz
       - name: Build fuzz targets with sanitizers and coverage

@@ -73,6 +73,9 @@ typedef struct C_Target {
     C_StringList ldflags;
     C_StringList system_links;
     C_StringList frameworks;
+    C_StringList generated_outputs;
+    C_StringList generated_inputs;
+    C_StringList generated_commands;
     C_Dependency *deps[C_MAX_DEPS];
     size_t dep_count;
     struct C_Target *target_deps[C_MAX_TARGETS];
@@ -209,6 +212,22 @@ static inline void c_warnings_strict(C_Target *t) {
     c__push(&t->cflags, "-Wall");
     c__push(&t->cflags, "-Wextra");
     c__push(&t->cflags, "-Wpedantic");
+}
+
+/*
+ * Declare a generated source/output. `command` is executed by /bin/sh when
+ * output is missing, input is newer, or the command itself changed. Passing
+ * NULL/empty input creates a command-only generated output. The output is
+ * automatically added to the target's source list.
+ */
+static inline void c_generate(C_Target *t, const char *output, const char *input, const char *command) {
+    if (!t) c__fatal("c_generate received a null target");
+    if (!output || !output[0]) c__fatal("c_generate output is empty");
+    if (!command || !command[0]) c__fatal("c_generate command is empty");
+    c__push(&t->generated_outputs, output);
+    c__push(&t->generated_inputs, input ? input : "");
+    c__push(&t->generated_commands, command);
+    c__push(&t->sources, output);
 }
 
 static inline void c_link_target(C_Target *t, C_Target *dependency) {

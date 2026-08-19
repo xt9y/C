@@ -399,6 +399,9 @@ static void free_build(C_Build *b) {
         free_c_list(&t->ldflags);
         free_c_list(&t->system_links);
         free_c_list(&t->frameworks);
+        free_c_list(&t->generated_outputs);
+        free_c_list(&t->generated_inputs);
+        free_c_list(&t->generated_commands);
     }
     for (size_t i = 0; i < b->dep_count; ++i) {
         C_Dependency *d = &b->deps[i];

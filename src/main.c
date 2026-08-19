@@ -811,18 +811,52 @@ static void cmd_fetch(const Options *opt) {
     free_build(b);
 }
 
+static const char *dep_kind_name(C_DepKind kind) {
+    return kind == C_DEP_CMAKE ? "cmake" : kind == C_DEP_SOURCE ? "source" : "header";
+}
+
 static void cmd_deps(const Options *opt) {
     C_Build *b = alloc_build();
     load_build(opt, b);
+    if (opt->target_name && !strcmp(opt->target_name, "clean")) {
+        char cache[PATH_MAX], path[PATH_MAX];
+        cache_root(cache);
+        static const char *dirs[] = {"git", "src", "pkg", "dep-build"};
+        for (size_t i = 0; i < C_ARRAY_LEN(dirs); ++i) {
+            path_join(path, cache, dirs[i]);
+            if (is_dir(path) && remove_tree(path) != 0) die("cannot remove dependency cache: %s", path);
+        }
+        note("CLEAN", "dependency cache");
+        free_build(b);
+        return;
+    }
+    if (opt->target_name && strcmp(opt->target_name, "tree"))
+        die("unknown deps action: %s (expected tree or clean)", opt->target_name);
+    if (opt->target_name && !strcmp(opt->target_name, "tree")) {
+        puts("Targets:");
+        for (size_t i = 0; i < b->target_count; ++i) {
+            C_Target *t = &b->targets[i];
+            printf("  %s\n", t->name);
+            for (size_t j = 0; j < t->target_dep_count; ++j)
+                printf("    -> target %s\n", t->target_deps[j]->name);
+            for (size_t j = 0; j < t->dep_count; ++j)
+                printf("    -> dependency %s [%s]\n", t->deps[j]->name, dep_kind_name(t->deps[j]->kind));
+        }
+        if (b->dep_count) {
+            puts("Dependencies:");
+            for (size_t i = 0; i < b->dep_count; ++i)
+                printf("  %s  %s  %s  [%s]\n", b->deps[i].name, b->deps[i].git, b->deps[i].ref, dep_kind_name(b->deps[i].kind));
+        }
+        free_build(b);
+        return;
+    }
     if (!b->dep_count) {
         puts("No dependencies.");
         free_build(b);
         return;
     }
-    for (size_t i = 0; i < b->dep_count; ++i) {
-        printf("%s  %s  %s  [%s]\n", b->deps[i].name, b->deps[i].git, b->deps[i].ref,
-               b->deps[i].kind == C_DEP_CMAKE ? "cmake" : (b->deps[i].kind == C_DEP_SOURCE ? "source" : "header"));
-    }
+    for (size_t i = 0; i < b->dep_count; ++i)
+        printf("%s  %s  %s  [%s]\n", b->deps[i].name, b->deps[i].git, b->deps[i].ref, dep_kind_name(b->deps[i].kind));
     free_build(b);
 }
 
@@ -875,6 +909,21 @@ static void cmd_test(const Options *opt) {
     free_build(b);
 }
 
+static void cache_stats_walk(const char *path, unsigned long long *files, unsigned long long *bytes) {
+    DIR *d = opendir(path);
+    if (!d) return;
+    struct dirent *ent;
+    while ((ent = readdir(d))) {
+        if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, "..")) continue;
+        char child[PATH_MAX]; path_join(child, path, ent->d_name);
+        struct stat st;
+        if (lstat(child, &st) != 0) continue;
+        if (S_ISDIR(st.st_mode)) cache_stats_walk(child, files, bytes);
+        else if (S_ISREG(st.st_mode)) { ++*files; *bytes += (unsigned long long)st.st_size; }
+    }
+    closedir(d);
+}
+
 static void cmd_cache(const Options *opt) {
     char cache[PATH_MAX];
     cache_root(cache);
@@ -883,6 +932,13 @@ static void cmd_cache(const Options *opt) {
         note("CLEAN", "%s", cache);
         return;
     }
+    if (opt->target_name && !strcmp(opt->target_name, "stats")) {
+        unsigned long long files = 0, bytes = 0;
+        if (is_dir(cache)) cache_stats_walk(cache, &files, &bytes);
+        printf("Path   %s\nFiles  %llu\nBytes  %llu\n", cache, files, bytes);
+        return;
+    }
+    if (opt->target_name) die("unknown cache action: %s (expected stats or clean)", opt->target_name);
     printf("%s\n", cache);
 }
 
@@ -933,10 +989,10 @@ static void usage(void) {
          "  c run [target] [--release] [-v] [-- args...]\n"
          "  c fetch\n"
          "  c update [dependency]\n"
-         "  c deps\n"
+         "  c deps [tree|clean]\n"
          "  c test [target]\n"
          "  c clean\n"
-         "  c cache [clean]\n"
+         "  c cache [stats|clean]\n"
          "  c doctor\n"
          "  c --version\n\n"
          "environment:\n"

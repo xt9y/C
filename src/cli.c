@@ -1360,6 +1360,8 @@ static const char *cli_step_name(const char *kind) {
     if (!strcmp(kind, "FETCH")) return "fetch";
     if (!strcmp(kind, "UPDATE")) return "update";
     if (!strcmp(kind, "DEP")) return "dependency";
+    if (!strcmp(kind, "GEN")) return "generate";
+    if (!strcmp(kind, "WHY")) return "reason";
     if (!strcmp(kind, "CC")) return "compile";
     if (!strcmp(kind, "AR")) return "archive";
     if (!strcmp(kind, "LINK")) return "link";

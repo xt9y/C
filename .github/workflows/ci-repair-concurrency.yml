@@ -27,3 +27,4 @@ jobs:
           git add -A .github/workflows/ci.yml .github/workflows/ci-repair-concurrency.yml
           git commit -m "Cancel obsolete CI runs"
           git push origin HEAD:ci-repair
+# trigger

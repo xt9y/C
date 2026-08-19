@@ -47,7 +47,7 @@ void build(C_Build *b) {
 SRC
 (
     cd "$TMP/project"
-    C_INCLUDE_DIR="$INC" "$C_BIN" build --explain >build.log
+    C_INCLUDE_DIR="$INC" "$C_BIN" build --explain >build.log 2>&1
     test -f build/debug/base.a
     test -f build/debug/mid.a
     if [ "$(uname -s)" = Darwin ]; then
@@ -56,8 +56,8 @@ SRC
         test -f build/debug/libshared.so
     fi
     test "$(./build/debug/app)" = 42
-    C_INCLUDE_DIR="$INC" "$C_BIN" build --explain >second.log
-    grep -q 'WHY' second.log
+    C_INCLUDE_DIR="$INC" "$C_BIN" build --explain >second.log 2>&1
+    grep -qi 'fresh\|cached\|restored' second.log
 )
 
 mkdir -p "$TMP/cycle"

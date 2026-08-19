@@ -6,12 +6,38 @@ BUILD=${FUZZ_BUILD_DIR:-"$ROOT/fuzz/.build"}
 PROFILE_DIR=${FUZZ_PROFILE_DIR:-"$ROOT/fuzz/profiles"}
 OUT=${FUZZ_COVERAGE_DIR:-"$ROOT/fuzz/coverage"}
 
-for tool in llvm-profdata llvm-cov python3; do
-    if ! command -v "$tool" >/dev/null 2>&1; then
-        echo "fuzz coverage: missing $tool" >&2
-        exit 1
+find_llvm_tool() {
+    base="$1"
+    explicit="$2"
+    if [ -n "$explicit" ] && command -v "$explicit" >/dev/null 2>&1; then
+        command -v "$explicit"
+        return 0
     fi
-done
+    if command -v "$base" >/dev/null 2>&1; then
+        command -v "$base"
+        return 0
+    fi
+    for version in 21 20 19 18 17 16 15 14; do
+        if command -v "$base-$version" >/dev/null 2>&1; then
+            command -v "$base-$version"
+            return 0
+        fi
+    done
+    return 1
+}
+
+LLVM_PROFDATA_BIN=$(find_llvm_tool llvm-profdata "${LLVM_PROFDATA:-}") || {
+    echo "fuzz coverage: missing llvm-profdata (including versioned variants)" >&2
+    exit 1
+}
+LLVM_COV_BIN=$(find_llvm_tool llvm-cov "${LLVM_COV:-}") || {
+    echo "fuzz coverage: missing llvm-cov (including versioned variants)" >&2
+    exit 1
+}
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "fuzz coverage: missing python3" >&2
+    exit 1
+fi
 
 set -- "$PROFILE_DIR"/*.profraw
 if [ ! -e "$1" ]; then
@@ -21,7 +47,7 @@ fi
 
 mkdir -p "$OUT"
 PROFDATA="$OUT/coverage.profdata"
-llvm-profdata merge -sparse "$PROFILE_DIR"/*.profraw -o "$PROFDATA"
+"$LLVM_PROFDATA_BIN" merge -sparse "$PROFILE_DIR"/*.profraw -o "$PROFDATA"
 
 # Do not ignore the entire fuzz/ directory: cli_fuzz.c is a line-mapped copy of
 # production src/cli.c. Exclude only actual harness/support sources and public
@@ -31,7 +57,7 @@ PATH_EQUIV="$BUILD/cli_fuzz.c,$ROOT/src/cli.c"
 OBJECTS="-object=$BUILD/fuzz_depfile -object=$BUILD/fuzz_cache -object=$BUILD/fuzz_cli -object=$BUILD/fuzz_fs -object=$BUILD/fuzz_project"
 
 # shellcheck disable=SC2086
-llvm-cov report "$BUILD/fuzz_lockfile" \
+"$LLVM_COV_BIN" report "$BUILD/fuzz_lockfile" \
     $OBJECTS \
     -instr-profile="$PROFDATA" \
     -ignore-filename-regex="$IGNORE" \
@@ -39,7 +65,7 @@ llvm-cov report "$BUILD/fuzz_lockfile" \
     > "$OUT/coverage.txt"
 
 # shellcheck disable=SC2086
-llvm-cov export "$BUILD/fuzz_lockfile" \
+"$LLVM_COV_BIN" export "$BUILD/fuzz_lockfile" \
     $OBJECTS \
     -instr-profile="$PROFDATA" \
     -ignore-filename-regex="$IGNORE" \
@@ -47,7 +73,7 @@ llvm-cov export "$BUILD/fuzz_lockfile" \
     > "$OUT/coverage.json"
 
 # shellcheck disable=SC2086
-llvm-cov show "$BUILD/fuzz_lockfile" \
+"$LLVM_COV_BIN" show "$BUILD/fuzz_lockfile" \
     $OBJECTS \
     -instr-profile="$PROFDATA" \
     -ignore-filename-regex="$IGNORE" \

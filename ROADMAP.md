@@ -12,7 +12,7 @@ C-BuildSystem is moving from prototype work toward a stable, correctness-first r
 - [x] Add deterministic incremental-rebuild regression coverage.
 - [x] Add ASan + UBSan CI and fuzz smoke coverage.
 - [x] Move expensive benchmarks off normal pushes and PRs.
-- [ ] Continue expanding interruption, filesystem-failure and malformed-lockfile tests.
+- [ ] Continue expanding interruption, filesystem-failure and malformed-lockfile tests. Interruption recovery and malformed pinned commits are now covered; filesystem-failure coverage is still incomplete.
 
 ## 0.9 — Complete build graph
 
@@ -24,7 +24,8 @@ C-BuildSystem is moving from prototype work toward a stable, correctness-first r
 - [x] Strict warning helpers.
 - [x] Git dependencies with lockfile-pinned commits.
 - [x] CMake and Make compatibility backends.
-- [ ] Dependency-tree inspection and stronger transitive/version-conflict diagnostics.
+- [x] Dependency-tree inspection.
+- [ ] Stronger transitive/version-conflict diagnostics.
 - [ ] First-class install rules.
 - [ ] `pkg-config` integration and explicit system-include handling.
 - [ ] Response-file support for very large compiler/linker command lines.
@@ -38,7 +39,7 @@ C-BuildSystem is moving from prototype work toward a stable, correctness-first r
 - [x] Source-compatibility policy for `cbuild.h` documented before 1.0.
 - [ ] Broaden distro/architecture coverage where hosted runners make it practical.
 - [ ] Keep validating on BGE and additional real projects.
-- [ ] Add more dependency edge-case and offline-rebuild coverage.
+- [ ] Add more dependency edge-case and offline-rebuild coverage. Locked offline rebuilds are now a required regression.
 - [ ] Standardize benchmark statistics and scenarios across every benchmark.
 
 ## 1.0 — First stable release

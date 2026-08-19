@@ -16,8 +16,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ci-repair
-      - name: Cancel obsolete CI runs on new commits
-        run: sed -i 's/cancel-in-progress: false/cancel-in-progress: true/' .github/workflows/ci.yml
+      - name: Harden CI configuration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/ci.yml')
+          s = p.read_text()
+          s = s.replace('cancel-in-progress: false', 'cancel-in-progress: true', 1)
+          s = s.replace('''      - name: Install Clang\n        run: |\n          sudo apt-get update\n          sudo apt-get install -y clang\n''', '''      - name: Verify Clang\n        run: clang --version\n''')
+          s = s.replace('''      - name: Install Clang and LLVM coverage tools\n        run: |\n          sudo apt-get update\n          sudo apt-get install -y clang llvm\n''', '''      - name: Verify Clang and LLVM coverage tools\n        run: |\n          clang --version\n          llvm-cov --version\n''')
+          p.write_text(s)
+          PY
       - name: Remove repair workflow
         run: rm .github/workflows/ci-repair-concurrency.yml
       - name: Commit repair
@@ -25,6 +34,5 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A .github/workflows/ci.yml .github/workflows/ci-repair-concurrency.yml
-          git commit -m "Cancel obsolete CI runs"
+          git commit -m "Harden CI scheduling and tool setup"
           git push origin HEAD:ci-repair
-# trigger

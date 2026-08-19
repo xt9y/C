@@ -19,6 +19,7 @@ typedef struct CompilerPerfOptions {
     bool fast_debug;
     bool adaptive_jobs;
     bool jobs_explicit;
+    bool explain;
     char linker[32];
 } CompilerPerfOptions;
 
@@ -80,6 +81,7 @@ static void compiler_perf_defaults(void) {
     compiler_perf.fast_debug = false;
     compiler_perf.adaptive_jobs = false;
     compiler_perf.jobs_explicit = false;
+    compiler_perf.explain = false;
     compiler_perf.linker[0] = '\0';
 
     const char *jobs = getenv("C_JOBS");
@@ -99,6 +101,8 @@ static void compiler_perf_defaults(void) {
     if (fast_debug && strcmp(fast_debug, "0") && strcmp(fast_debug, "false") && strcmp(fast_debug, "off")) compiler_perf.fast_debug = true;
     const char *adaptive = getenv("C_ADAPTIVE_JOBS");
     if (adaptive && strcmp(adaptive, "0") && strcmp(adaptive, "false") && strcmp(adaptive, "off")) compiler_perf.adaptive_jobs = true;
+    const char *explain = getenv("C_EXPLAIN");
+    if (explain && strcmp(explain, "0") && strcmp(explain, "false") && strcmp(explain, "off")) compiler_perf.explain = true;
     const char *linker = getenv("C_LINKER");
     if (linker && *linker) c__copy(compiler_perf.linker, sizeof(compiler_perf.linker), linker);
 }
@@ -158,6 +162,10 @@ static char **compiler_filter_perf_options(int argc, char **argv, int *out_argc)
         }
         if (!strcmp(arg, "--profile")) {
             compiler_perf.profile = true;
+            continue;
+        }
+        if (!strcmp(arg, "--explain")) {
+            compiler_perf.explain = true;
             continue;
         }
         if (!strcmp(arg, "--fast-debug")) {
@@ -480,6 +488,8 @@ static bool compiler_copy_atomic(const char *from, const char *to) {
         if (fwrite(buf, 1, n, out) != n) { ok = false; break; }
     }
     if (ferror(in)) ok = false;
+    if (fflush(out) != 0) ok = false;
+    if (ok && fsync(fileno(out)) != 0) ok = false;
     if (fclose(in) != 0) ok = false;
     if (fclose(out) != 0) ok = false;
     if (!ok || rename(temp, to) != 0) { unlink(temp); return false; }
@@ -509,7 +519,12 @@ static bool compiler_object_cache_restore(const char key[17], const char *obj, c
         if (!end || *end || !compiler_hash_file(tab, &actual) || actual != (uint64_t)expected) { valid = false; break; }
     }
     fclose(f);
-    if (!valid) return false;
+    if (!valid) {
+        unlink(cached_obj);
+        unlink(cached_dep);
+        unlink(meta);
+        return false;
+    }
     return compiler_clone_or_copy(cached_obj, obj) && compiler_clone_or_copy(cached_dep, depf);
 }
 
@@ -565,6 +580,7 @@ typedef enum CompilerPrepareResult {
 
 static CompilerPrepareResult compiler_prepare_task(CompilerTask *task, StrVec *cmd, const char *source, const char *obj, const char *depf) {
     if (compiler_depfile_fresh(obj, depf, source)) {
+        if (compiler_perf.explain) note("WHY", "%s is fresh", source);
         vec_free(cmd);
         return COMPILER_PREP_FRESH;
     }
@@ -573,11 +589,13 @@ static CompilerPrepareResult compiler_prepare_task(CompilerTask *task, StrVec *c
     char key[17];
     hash_u64_hex(h, key);
     if (compiler_object_cache_restore(key, obj, depf)) {
+        if (compiler_perf.explain) note("WHY", "%s restored from object cache", source);
         compiler_profile_cached(source);
         vec_free(cmd);
         return COMPILER_PREP_CACHE;
     }
 
+    if (compiler_perf.explain) note("WHY", "%s rebuild required (source/dependency/command changed or object missing)", source);
     task->cmd = *cmd;
     memset(cmd, 0, sizeof(*cmd));
     task->source = xstrdup(source);
@@ -956,6 +974,7 @@ static char *compiler_build_target(C_Build *b, C_Target *t, DepState states[], c
         else { vec_push(&a, "-O0"); vec_push(&a, "-g"); }
         vec_push(&a, "-MMD"); vec_push(&a, "-MF"); vec_push(&a, depf);
         compiler_append_target_compile_flags(&a, t, b, states, source);
+        if (t->kind == C_TARGET_SHARED_LIBRARY) vec_push(&a, "-fPIC");
         vec_push(&a, "-c"); vec_push(&a, source); vec_push(&a, "-o"); vec_push(&a, obj);
         if (db) write_compile_command(db, &first, &a, source, cwd);
 
@@ -971,7 +990,15 @@ static char *compiler_build_target(C_Build *b, C_Target *t, DepState states[], c
 
     char profile_dir[PATH_MAX]; path_join(profile_dir, "build", opt->release ? "release" : "debug"); mkdir_p(profile_dir);
     char *output = malloc(PATH_MAX); if (!output) die("out of memory");
-    char outname[C_MAX_NAME + 4]; snprintf(outname, sizeof(outname), "%s%s", t->name, t->kind == C_TARGET_STATIC_LIBRARY ? ".a" : "");
+    char outname[C_MAX_NAME + 16];
+    if (t->kind == C_TARGET_STATIC_LIBRARY) snprintf(outname, sizeof(outname), "%s.a", t->name);
+    else if (t->kind == C_TARGET_SHARED_LIBRARY) {
+#ifdef __APPLE__
+        snprintf(outname, sizeof(outname), "lib%s.dylib", t->name);
+#else
+        snprintf(outname, sizeof(outname), "lib%s.so", t->name);
+#endif
+    } else snprintf(outname, sizeof(outname), "%s", t->name);
     path_join(output, profile_dir, outname);
     bool relink = !file_exists(output); time_t outt = mtime_of(output);
     double link_ms = 0.0;
@@ -983,7 +1010,15 @@ static char *compiler_build_target(C_Build *b, C_Target *t, DepState states[], c
             for (size_t i = 0; i < objects.count; ++i) vec_push(&a, objects.items[i]);
             note("AR", "%s", output); double link_started = compiler_perf_now_ms(); if (compiler_run_process(&a, opt->verbose) != 0) die("archive failed"); link_ms = compiler_perf_now_ms() - link_started; vec_free(&a);
         } else {
-            StrVec a = {0}; vec_push(&a, opt->cc); compiler_append_linker(&a); for (size_t i = 0; i < objects.count; ++i) vec_push(&a, objects.items[i]);
+            StrVec a = {0}; vec_push(&a, opt->cc); compiler_append_linker(&a);
+            if (t->kind == C_TARGET_SHARED_LIBRARY) {
+#ifdef __APPLE__
+                vec_push(&a, "-dynamiclib");
+#else
+                vec_push(&a, "-shared");
+#endif
+            }
+            for (size_t i = 0; i < objects.count; ++i) vec_push(&a, objects.items[i]);
             append_link_flags(&a, t, b, states); vec_push(&a, "-o"); vec_push(&a, output);
             note("LINK", "%s", output); double link_started = compiler_perf_now_ms(); if (compiler_run_process(&a, opt->verbose) != 0) die("link failed"); link_ms = compiler_perf_now_ms() - link_started; vec_free(&a);
         }
@@ -993,24 +1028,68 @@ static char *compiler_build_target(C_Build *b, C_Target *t, DepState states[], c
     vec_free(&sources); vec_free(&compile_sources); vec_free(&objects); return output;
 }
 
+static size_t compiler_target_index(C_Build *b, C_Target *t) {
+    if (!b || !t) die("invalid target graph");
+    ptrdiff_t idx = t - b->targets;
+    if (idx < 0 || (size_t)idx >= b->target_count) die("target dependency does not belong to this build");
+    return (size_t)idx;
+}
+
+static void compiler_append_target_link_closure(C_Build *b, C_Target *owner, C_Target *dep,
+                                                char *graph_outputs[], bool seen[]) {
+    size_t idx = compiler_target_index(b, dep);
+    if (seen[idx]) return;
+    seen[idx] = true;
+    if (dep->kind != C_TARGET_STATIC_LIBRARY && dep->kind != C_TARGET_SHARED_LIBRARY)
+        die("target %s links non-library target %s", owner->name, dep->name);
+    if (!graph_outputs[idx]) die("internal target graph error for %s", dep->name);
+    c__push(&owner->ldflags, graph_outputs[idx]);
+    for (size_t i = 0; i < dep->target_dep_count; ++i)
+        compiler_append_target_link_closure(b, owner, dep->target_deps[i], graph_outputs, seen);
+}
+
+static char *compiler_build_target_graph(C_Build *b, C_Target *t, DepState states[], const Options *opt,
+                                         unsigned char graph_state[], char *graph_outputs[]) {
+    size_t idx = compiler_target_index(b, t);
+    if (graph_state[idx] == 1) die("cyclic target dependency involving %s", t->name);
+    if (graph_state[idx] == 2) return xstrdup(graph_outputs[idx]);
+    graph_state[idx] = 1;
+    for (size_t i = 0; i < t->target_dep_count; ++i) {
+        char *dep_output = compiler_build_target_graph(b, t->target_deps[i], states, opt, graph_state, graph_outputs);
+        free(dep_output);
+    }
+    bool seen[C_MAX_TARGETS] = {0};
+    for (size_t i = 0; i < t->target_dep_count; ++i)
+        compiler_append_target_link_closure(b, t, t->target_deps[i], graph_outputs, seen);
+    graph_outputs[idx] = compiler_build_target(b, t, states, opt);
+    graph_state[idx] = 2;
+    return xstrdup(graph_outputs[idx]);
+}
+
+static void compiler_free_graph_outputs(C_Build *b, char *graph_outputs[]) {
+    for (size_t i = 0; i < b->target_count; ++i) free(graph_outputs[i]);
+}
+
 static void compiler_cmd_build_or_run(const Options *opt, bool run) {
     C_Build *b = alloc_build(); load_build(opt, b);
     DepState states[C_MAX_DEPS] = {0}; compiler_resolve_all(b, opt, states);
-    C_Target *t = select_target(b, opt); char *output = compiler_build_target(b, t, states, opt);
+    unsigned char graph_state[C_MAX_TARGETS] = {0}; char *graph_outputs[C_MAX_TARGETS] = {0};
+    C_Target *t = select_target(b, opt); char *output = compiler_build_target_graph(b, t, states, opt, graph_state, graph_outputs);
     if (run) {
         if (t->kind != C_TARGET_EXECUTABLE && t->kind != C_TARGET_TEST) die("target %s is not executable", t->name);
         note("RUN", "%s", output);
         StrVec a = {0}; char exec[PATH_MAX];
         if (output[0] == '/') snprintf(exec, sizeof(exec), "%s", output); else snprintf(exec, sizeof(exec), "./%s", output);
         vec_push(&a, exec); for (int i = 0; i < opt->run_argc; ++i) vec_push(&a, opt->run_argv[i]);
-        int rc = compiler_run_process(&a, opt->verbose); vec_free(&a); free(output); free_build(b); exit(rc);
+        int rc = compiler_run_process(&a, opt->verbose); vec_free(&a); free(output); compiler_free_graph_outputs(b, graph_outputs); free_build(b); exit(rc);
     }
-    free(output); free_build(b);
+    free(output); compiler_free_graph_outputs(b, graph_outputs); free_build(b);
 }
 
 static void compiler_cmd_test(const Options *opt) {
     C_Build *b = alloc_build(); load_build(opt, b);
     DepState states[C_MAX_DEPS] = {0}; compiler_resolve_all(b, opt, states);
+    unsigned char graph_state[C_MAX_TARGETS] = {0}; char *graph_outputs[C_MAX_TARGETS] = {0};
     C_Target *targets[C_MAX_TARGETS] = {0};
     char *outputs[C_MAX_TARGETS] = {0};
     size_t tests = 0;
@@ -1018,7 +1097,7 @@ static void compiler_cmd_test(const Options *opt) {
         C_Target *t = &b->targets[i];
         if (t->kind != C_TARGET_TEST || (opt->target_name && strcmp(t->name, opt->target_name))) continue;
         targets[tests] = t;
-        outputs[tests] = compiler_build_target(b, t, states, opt);
+        outputs[tests] = compiler_build_target_graph(b, t, states, opt, graph_state, graph_outputs);
         ++tests;
     }
     if (!tests) die("no test targets defined; use c_test() in build.c");
@@ -1054,6 +1133,7 @@ static void compiler_cmd_test(const Options *opt) {
         }
     }
     for (size_t i = 0; i < tests; ++i) free(outputs[i]);
+    compiler_free_graph_outputs(b, graph_outputs);
     note("PASS", "%zu test target%s", tests, tests == 1 ? "" : "s");
     free_build(b);
 }
@@ -1152,7 +1232,7 @@ static bool cli_perf_option(const char *arg) {
     return (!strncmp(arg, "-j", 2) && arg[2]) || !strncmp(arg, "--jobs=", 7) ||
            !strcmp(arg, "--unity") || !strncmp(arg, "--unity=", 8) || !strcmp(arg, "--no-unity") ||
            !strcmp(arg, "--object-cache") || !strcmp(arg, "--no-object-cache") ||
-           !strcmp(arg, "--profile") || !strcmp(arg, "--fast-debug") ||
+           !strcmp(arg, "--profile") || !strcmp(arg, "--explain") || !strcmp(arg, "--fast-debug") ||
            !strcmp(arg, "--adaptive-jobs") || !strcmp(arg, "--no-adaptive-jobs") ||
            !strncmp(arg, "--linker=", 9);
 }

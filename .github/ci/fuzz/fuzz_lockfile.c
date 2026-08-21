@@ -1,6 +1,8 @@
 #include <stdint.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "fuzz_support.h"
@@ -32,18 +34,37 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size > 1024 * 1024) return 0;
     if (!fuzz_write_file("c.lock", data, size)) return 0;
 
-    LockFile first;
-    load_lock(&first);
-    fuzz_check_lock(&first);
+    /* load_lock() intentionally rejects malformed CLI input through
+       c__fatal()/exit().  libFuzzer treats any direct exit as a crash, so run
+       the parser in a child.  Ordinary non-zero exits are expected rejection;
+       signals still mean a real crash and are escalated to the parent. */
+    pid_t pid = fork();
+    if (pid < 0) {
+        unlink("c.lock");
+        return 0;
+    }
+    if (pid == 0) {
+        LockFile first;
+        load_lock(&first);
+        fuzz_check_lock(&first);
 
-    if (first.count) {
-        save_lock(&first);
-        LockFile second;
-        load_lock(&second);
-        fuzz_check_lock(&second);
-        if (!fuzz_lock_equal(&first, &second)) abort();
+        if (first.count) {
+            save_lock(&first);
+            LockFile second;
+            load_lock(&second);
+            fuzz_check_lock(&second);
+            if (!fuzz_lock_equal(&first, &second)) abort();
+        }
+        _exit(0);
     }
 
+    int status = 0;
+    while (waitpid(pid, &status, 0) < 0) {
+        if (errno == EINTR) continue;
+        unlink("c.lock");
+        return 0;
+    }
     unlink("c.lock");
+    if (WIFSIGNALED(status)) abort();
     return 0;
 }

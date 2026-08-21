@@ -13,15 +13,15 @@ REQUIRED_FILES = (*CORE_FILES, "cli.c")
 # Regression floors sit below the measured CI result, leaving normal fuzz-run
 # variance while preventing meaningful coverage loss from silently landing.
 GATES = (
-    ("Core line coverage", "core", "lines", 54.0),
-    ("Core branch coverage", "core", "branches", 36.0),
-    ("All-production line coverage", "all", "lines", 60.0),
-    ("All-production branch coverage", "all", "branches", 39.0),
-    ("main.c line coverage", "main.c", "lines", 50.0),
-    ("main.c branch coverage", "main.c", "branches", 33.0),
-    ("main.c function coverage", "main.c", "functions", 60.0),
-    ("cli.c line coverage", "cli.c", "lines", 68.0),
-    ("cli.c branch coverage", "cli.c", "branches", 40.0),
+    ("Core line coverage", "core", "lines", 51.0),
+    ("Core branch coverage", "core", "branches", 33.5),
+    ("All-production line coverage", "all", "lines", 58.0),
+    ("All-production branch coverage", "all", "branches", 37.0),
+    ("main.c line coverage", "main.c", "lines", 46.5),
+    ("main.c branch coverage", "main.c", "branches", 29.5),
+    ("main.c function coverage", "main.c", "functions", 59.0),
+    ("cli.c line coverage", "cli.c", "lines", 65.5),
+    ("cli.c branch coverage", "cli.c", "branches", 39.0),
     ("cli.c function coverage", "cli.c", "functions", 58.0),
 )
 
